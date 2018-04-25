@@ -4,7 +4,7 @@ An improved alternative to patch32lsb. WIP.
 **Improvements/Goals:**
 - More readable code
 - Unit tests
-- Built-in support for generating kobo update files
+- Built-in support for generating kobo update files (coming soon)
 - More modular
 - Embeddable into another application
 - Single file

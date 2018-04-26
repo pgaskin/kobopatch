@@ -1,4 +1,4 @@
-package main
+package patchlib
 
 import (
 	"bytes"
@@ -7,14 +7,10 @@ import (
 	"fmt"
 )
 
-func main() {
-
-}
-
 // Patcher applies patches to a byte array. All operations are done starting from cur.
 type Patcher struct {
 	buf []byte
-	cur int
+	cur int64
 }
 
 // NewPatcher creates a new Patcher.
@@ -33,11 +29,11 @@ func (p *Patcher) ResetBaseAddress() {
 }
 
 // BaseAddress moves cur to an offset. The offset starts at 0.
-func (p *Patcher) BaseAddress(offset int) error {
+func (p *Patcher) BaseAddress(offset int64) error {
 	if offset < 0 {
 		return errors.New("BaseAddress: offset less than 0")
 	}
-	if offset >= len(p.buf) {
+	if offset >= int64(len(p.buf)) {
 		return errors.New("BaseAddress: offset greater than length of buf")
 	}
 	p.cur = offset
@@ -54,7 +50,7 @@ func (p *Patcher) FindBaseAddress(find []byte) error {
 	if i < 0 {
 		return errors.New("FindBaseAddress: could not find bytes")
 	}
-	p.cur = i
+	p.cur = int64(i)
 
 	return nil
 }
@@ -65,30 +61,30 @@ func (p *Patcher) FindBaseAddressString(find string) error {
 }
 
 // ReplaceBytes replaces the first occurence of a sequence of bytes with another of the same length.
-func (p *Patcher) ReplaceBytes(offset int, find, replace []byte) error {
+func (p *Patcher) ReplaceBytes(offset int64, find, replace []byte) error {
 	return wrapErrIfNotNil("ReplaceBytes", p.replaceValue(offset, find, replace))
 }
 
 // ReplaceString replaces the first occurence of a string with another of the same length.
-func (p *Patcher) ReplaceString(offset int, find, replace string) error {
+func (p *Patcher) ReplaceString(offset int64, find, replace string) error {
 	return wrapErrIfNotNil("ReplaceString", p.replaceValue(offset, find, replace))
 }
 
 // ReplaceInt replaces the first occurence of an integer between 0 and 255 inclusively.
-func (p *Patcher) ReplaceInt(offset int, find, replace uint8) error {
+func (p *Patcher) ReplaceInt(offset int64, find, replace uint8) error {
 	return wrapErrIfNotNil("ReplaceInt", p.replaceValue(offset, find, replace))
 }
 
 // ReplaceFloat replaces the first occurence of a float.
-func (p *Patcher) ReplaceFloat(offset int, find, replace float64) error {
+func (p *Patcher) ReplaceFloat(offset int64, find, replace float64) error {
 	return wrapErrIfNotNil("ReplaceFloat", p.replaceValue(offset, find, replace))
 }
 
 // replaceValue encodes find and replace as little-endian binary and replaces the first
 // occurence starting at cur. The lengths of the encoded find and replace must be the
 // same, or an error will be returned.
-func (p *Patcher) replaceValue(offset int, find, replace interface{}) error {
-	if len(p.buf) < p.cur+offset {
+func (p *Patcher) replaceValue(offset int64, find, replace interface{}) error {
+	if int64(len(p.buf)) < p.cur+offset {
 		return errors.New("offset past end of buf")
 	}
 
@@ -116,7 +112,7 @@ func (p *Patcher) replaceValue(offset int, find, replace interface{}) error {
 	if len(fbuf) != len(rbuf) {
 		return errors.New("length mismatch in byte replacement")
 	}
-	if len(p.buf) < p.cur+offset+len(fbuf) {
+	if int64(len(p.buf)) < p.cur+offset+int64(len(fbuf)) {
 		return errors.New("replaced value past end of buf")
 	}
 

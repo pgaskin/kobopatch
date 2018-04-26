@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -191,7 +192,7 @@ func unescape(str string) (string, error) {
 	}
 	str = str[1 : len(str)-1]
 
-	nstr := ""
+	var buf bytes.Buffer
 	for {
 		if len(str) == 0 {
 			break
@@ -200,31 +201,31 @@ func unescape(str string) (string, error) {
 		case '\\':
 			switch str[1] {
 			case 'n':
-				nstr += "\n"
+				buf.Write([]byte("\n"))
 				str = str[2:]
 			case 'r':
-				nstr += "\r"
+				buf.Write([]byte("\r"))
 				str = str[2:]
 			case 't':
-				nstr += "\t"
+				buf.Write([]byte("\t"))
 				str = str[2:]
 			case 'v':
-				nstr += "\v"
+				buf.Write([]byte("\v"))
 				str = str[2:]
 			case '"':
-				nstr += "\""
+				buf.Write([]byte("\""))
 				str = str[2:]
 			case '\'':
-				nstr += "'"
+				buf.Write([]byte("'"))
 				str = str[2:]
 			case '`':
-				nstr += "`"
+				buf.Write([]byte("`"))
 				str = str[2:]
 			case '0':
-				nstr += "\x00"
+				buf.Write([]byte("\x00"))
 				str = str[2:]
 			case '\\':
-				nstr += "\\"
+				buf.Write([]byte("\\"))
 				str = str[2:]
 			case 'x':
 				var b []byte
@@ -232,17 +233,17 @@ func unescape(str string) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				nstr += string(b)
+				buf.Write(b)
 				str = str[4:]
 			default:
 				return "", errors.New("unknown escape " + string(str[1]))
 			}
 		default:
-			nstr += string(str[0])
+			buf.Write([]byte{str[0]})
 			str = str[1:]
 		}
 	}
-	return nstr, nil
+	return string(buf.Bytes()), nil
 }
 
 func unescapeFirst(str string) (string, string, error) {

@@ -13,6 +13,7 @@ func TestUnescape(t *testing.T) {
 		{`test\0\xcc`, "test\x00\xcc"},
 		{`test\0\n\t\v\r\xcc`, "test\x00\n\t\v\r\xcc"},
 		{`test\0\n\t\v\r\xcc\"\'\` + "`", "test\x00\n\t\v\r\xcc\"'`"},
+		{`ÉÀÇ`, "ÉÀÇ"},
 	} {
 		u, err := unescape("`" + c[0] + "`")
 		assert.NoError(t, err)

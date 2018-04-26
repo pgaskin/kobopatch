@@ -18,7 +18,7 @@ func TestResetBaseAddress(t *testing.T) {
 	p := NewPatcher([]byte(`this is a test`))
 	p.cur = 5
 	p.ResetBaseAddress()
-	eq(t, p.cur, int64(0), "unexpected base address")
+	eq(t, p.cur, int32(0), "unexpected base address")
 }
 
 func TestBaseAddress(t *testing.T) {
@@ -26,7 +26,7 @@ func TestBaseAddress(t *testing.T) {
 	err(t, p.BaseAddress(14)) // past buf len
 	err(t, p.BaseAddress(-1)) // negative
 	nerr(t, p.BaseAddress(4))
-	eq(t, p.cur, int64(4), "unexpected base address")
+	eq(t, p.cur, int32(4), "unexpected base address")
 }
 
 func TestFindBaseAddress(t *testing.T) {
@@ -34,7 +34,7 @@ func TestFindBaseAddress(t *testing.T) {
 	err(t, p.FindBaseAddress([]byte(`thiss`)))
 	err(t, p.FindBaseAddress([]byte(`this is a test sdfsdf`)))
 	nerr(t, p.FindBaseAddress([]byte(`a test`)))
-	eq(t, p.cur, int64(8), "unexpected base address")
+	eq(t, p.cur, int32(8), "unexpected base address")
 }
 
 func TestFindBaseAddressString(t *testing.T) {
@@ -42,7 +42,7 @@ func TestFindBaseAddressString(t *testing.T) {
 	err(t, p.FindBaseAddressString(`thiss`))
 	err(t, p.FindBaseAddressString(`this is a test sdfsdf`))
 	nerr(t, p.FindBaseAddressString(`a test`))
-	eq(t, p.cur, int64(8), "unexpected base address")
+	eq(t, p.cur, int32(8), "unexpected base address")
 }
 
 func TestReplaceString(t *testing.T) {
@@ -89,7 +89,7 @@ func TestAll(t *testing.T) {
 	)
 
 	p := NewPatcher(in)
-	eq(t, p.cur, int64(0), "base address should be correct")
+	eq(t, p.cur, int32(0), "base address should be correct")
 
 	nerr(t, p.ReplaceInt(0, 255, 0))
 
@@ -99,19 +99,19 @@ func TestAll(t *testing.T) {
 	nerr(t, p.ReplaceFloat(0, 1.05, 4.05))
 
 	err(t, p.FindBaseAddress([]byte("a testdfgdfg"))) // no match
-	eq(t, p.cur, int64(0), "base address should be correct")
+	eq(t, p.cur, int32(0), "base address should be correct")
 	nerr(t, p.FindBaseAddress([]byte("a test")))
-	eq(t, p.cur, int64(23), "base address should be correct")
+	eq(t, p.cur, int32(23), "base address should be correct")
 
 	err(t, p.ReplaceString(0, `is`, `si`)) // before current base address
 	nerr(t, p.ReplaceString(0, `a`, `t`))
 
 	p.ResetBaseAddress()
-	eq(t, p.cur, int64(0), "base address should be correct")
+	eq(t, p.cur, int32(0), "base address should be correct")
 	nerr(t, p.ReplaceString(0, `that`, `taht`))
 
 	nerr(t, p.FindBaseAddress([]byte("taht")))
-	eq(t, p.cur, int64(15), "base address should be correct")
+	eq(t, p.cur, int32(15), "base address should be correct")
 	nerr(t, p.ReplaceString(8, `t`, `z`))
 
 	err(t, p.ReplaceBytes(0, []byte{0x00, 0x01}, []byte{0x33, 0x33}))

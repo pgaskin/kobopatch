@@ -83,7 +83,7 @@ func main() {
 					break
 				}
 				args := strings.Replace(spl[1], " ", "", -1)
-				var offset int64
+				var offset int32
 				var find, replace []byte
 				_, err := fmt.Sscanf(args, "%x,%x,%x", &offset, &find, &replace)
 				checkErrn(i+1, err, "replace_bytes malformed")
@@ -92,7 +92,7 @@ func main() {
 				if !patchEnabled {
 					break
 				}
-				var addr int64
+				var addr int32
 				_, err := fmt.Sscanf(spl[1], "%x", &addr)
 				checkErrn(i+1, err, "base_address malformed")
 				checkErrn(i+1, p.BaseAddress(addr), "base_address failed")
@@ -101,7 +101,7 @@ func main() {
 					break
 				}
 				args := strings.Replace(spl[1], " ", "", -1)
-				var offset int64
+				var offset int32
 				var find, replace float64
 				_, err := fmt.Sscanf(args, "%x,%f,%f", &offset, &find, &replace)
 				checkErrn(i+1, err, "replace_float malformed")
@@ -111,7 +111,7 @@ func main() {
 					break
 				}
 				args := strings.Replace(spl[1], " ", "", -1)
-				var offset int64
+				var offset int32
 				var find, replace uint8
 				_, err := fmt.Sscanf(args, "%x,%d,%d", &offset, &find, &replace)
 				checkErrn(i+1, err, "replace_int malformed")
@@ -131,7 +131,11 @@ func main() {
 				if len(ab) != 2 {
 					fataln(i+1, "replace_string malformed")
 				}
-				var offset int64
+				var offset int32
+				if len(ab[0]) == 8 {
+					// ugly hack to fix negative offsets
+					ab[0] = strings.Replace(ab[0], "FFFFFF", "-", 1)
+				}
 				_, err := fmt.Sscanf(ab[0], "%x", &offset)
 				checkErrn(i+1, err, "replace_string offset malformed")
 				var find, replace, leftover string

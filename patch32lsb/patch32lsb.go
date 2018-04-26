@@ -65,7 +65,7 @@ func main() {
 			fataln(i+1, "Could not find equals sign in instruction")
 		case eqRegexp.MatchString(l):
 			spl := eqRegexp.Split(l, 2)
-			switch spl[0] {
+			switch strings.ToLower(spl[0]) {
 			case "patch_name":
 				patchName, err = unescape(spl[1])
 				checkErrn(i+1, err, "Error unescaping patch_name")

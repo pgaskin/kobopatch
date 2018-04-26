@@ -21,3 +21,8 @@ An improved alternative to patch32lsb. WIP.
 - Save and restore lists of enabled patches (coming soon)
 - more (coming soon)
 - Zlib support (coming soon)
+
+**Testing:**
+- Requires Linux and icdiff
+- Unit tests (automatically run by Travis CI): `go test -v ./...`
+- Real tests (compares original and new): `./testalllibnickel.sh` and `./testallnickel.sh`

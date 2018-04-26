@@ -143,11 +143,6 @@ func main() {
 				if leftover != "" {
 					fataln(i+1, "replace_string malformed: extraneous characters after last argument")
 				}
-				if len(replace) < len(find) {
-					// If replacement shorter than find, append a null to the replacement string to be consistent with the original patch32lsb.
-					replace += "\x00"
-					replace = replace + find[len(replace):]
-				}
 				checkErrn(i+1, p.ReplaceString(offset, find, replace), "replace_string failed")
 			default:
 				fataln(i+1, "Unexpected instruction: "+spl[0])

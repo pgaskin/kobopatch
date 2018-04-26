@@ -67,6 +67,11 @@ func (p *Patcher) ReplaceBytes(offset int64, find, replace []byte) error {
 
 // ReplaceString replaces the first occurence of a string with another of the same length.
 func (p *Patcher) ReplaceString(offset int64, find, replace string) error {
+	if len(replace) < len(find) {
+		// If replacement shorter than find, append a null to the replacement string to be consistent with the original patch32lsb.
+		replace += "\x00"
+		replace = replace + find[len(replace):]
+	}
 	return wrapErrIfNotNil("ReplaceString", p.replaceValue(offset, find, replace))
 }
 

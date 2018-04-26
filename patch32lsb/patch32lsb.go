@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -81,32 +82,72 @@ func main() {
 				if !patchEnabled {
 					break
 				}
-				fmt.Println("    replace_bytes not implemented")
+				args := strings.Replace(spl[1], " ", "", -1)
+				var offset int64
+				var find, replace []byte
+				_, err := fmt.Sscanf(args, "%x,%x,%x", &offset, &find, &replace)
+				checkErrn(i+1, err, "replace_bytes malformed")
+				checkErrn(i+1, p.ReplaceBytes(offset, find, replace), "replace_bytes failed")
 			case "base_address":
 				if !patchEnabled {
 					break
 				}
-				fmt.Println("    base_address not implemented")
+				var addr int64
+				_, err := fmt.Sscanf(spl[1], "%x", &addr)
+				checkErrn(i+1, err, "base_address malformed")
+				checkErrn(i+1, p.BaseAddress(addr), "base_address failed")
 			case "replace_float":
 				if !patchEnabled {
 					break
 				}
-				fmt.Println("    base_address not implemented")
+				args := strings.Replace(spl[1], " ", "", -1)
+				var offset int64
+				var find, replace float64
+				_, err := fmt.Sscanf(args, "%x,%f,%f", &offset, &find, &replace)
+				checkErrn(i+1, err, "replace_float malformed")
+				checkErrn(i+1, p.ReplaceFloat(offset, find, replace), "replace_float failed")
 			case "replace_int":
 				if !patchEnabled {
 					break
 				}
-				fmt.Println("    base_address not implemented")
+				args := strings.Replace(spl[1], " ", "", -1)
+				var offset int64
+				var find, replace uint8
+				_, err := fmt.Sscanf(args, "%x,%d,%d", &offset, &find, &replace)
+				checkErrn(i+1, err, "replace_int malformed")
+				checkErrn(i+1, p.ReplaceInt(offset, find, replace), "replace_int failed")
 			case "find_base_address":
 				if !patchEnabled {
 					break
 				}
-				fmt.Println("    find_base_address not implemented")
+				str, err := unescape(spl[1])
+				checkErrn(i+1, err, "find_base_address malformed")
+				checkErrn(i+1, p.FindBaseAddressString(str), "find_base_address failed")
 			case "replace_string":
 				if !patchEnabled {
 					break
 				}
-				fmt.Println("    find_base_address not implemented")
+				ab := strings.SplitN(spl[1], ", ", 2)
+				if len(ab) != 2 {
+					fataln(i+1, "replace_string malformed")
+				}
+				var offset int64
+				_, err := fmt.Sscanf(ab[0], "%x", &offset)
+				checkErrn(i+1, err, "replace_string offset malformed")
+				var find, replace, leftover string
+				leftover = ab[1]
+				find, leftover, err = unescapeFirst(leftover)
+				checkErrn(i+1, err, "replace_string find malformed")
+				leftover = strings.TrimLeft(leftover, ", ")
+				replace, leftover, err = unescapeFirst(leftover)
+				checkErrn(i+1, err, "replace_string replace malformed")
+				if leftover != "" {
+					fataln(i+1, "replace_string malformed: extraneous characters after last argument")
+				}
+				if len(replace) < len(find) {
+					replace = fmt.Sprintf("%"+strconv.Itoa(len(find))+"s", replace)
+				}
+				checkErrn(i+1, p.ReplaceString(offset, find, replace), "replace_string failed")
 			default:
 				fataln(i+1, "Unexpected instruction: "+spl[0])
 			}
@@ -149,17 +190,72 @@ func checkErrn(n int, err error, msg string) {
 }
 
 func unescape(str string) (string, error) {
-	if strings.HasPrefix(str, "`") || strings.HasPrefix(str, "'") {
-		str = `"` + str[1:]
+	if !(strings.HasPrefix(str, "`") && strings.HasSuffix(str, "`")) || (string(str[len(str)-2]) == `\` && string(str[len(str)-3]) != `\`) {
+		return str, errors.New("string not wrapped in backticks")
 	}
-	if strings.HasSuffix(str, "`") || strings.HasSuffix(str, "'") {
-		str = str[:len(str)-1] + `"`
+	str = str[1 : len(str)-1]
+
+	nstr := ""
+	for {
+		if len(str) == 0 {
+			break
+		}
+		switch str[0] {
+		case '\\':
+			switch str[1] {
+			case 'n':
+				nstr += "\n"
+				str = str[2:]
+			case 'r':
+				nstr += "\r"
+				str = str[2:]
+			case 't':
+				nstr += "\t"
+				str = str[2:]
+			case 'v':
+				nstr += "\v"
+				str = str[2:]
+			case '"':
+				nstr += "\""
+				str = str[2:]
+			case '\'':
+				nstr += "'"
+				str = str[2:]
+			case '`':
+				nstr += "`"
+				str = str[2:]
+			case '0':
+				nstr += "\x00"
+				str = str[2:]
+			case '\\':
+				nstr += "\\"
+				str = str[2:]
+			case 'x':
+				var b []byte
+				_, err := fmt.Sscanf(str[2:4], "%x", &b)
+				if err != nil {
+					return "", err
+				}
+				nstr += string(b)
+				str = str[4:]
+			default:
+				return "", errors.New("unknown escape " + string(str[1]))
+			}
+		default:
+			nstr += string(str[0])
+			str = str[1:]
+		}
 	}
-	str = strings.NewReplacer(
-		`\0`, `\x00`,
-		`\'`, `'`,
-		"\\`", "`",
-	).Replace(str)
-	str, err := strconv.Unquote(str)
-	return str, err
+	return nstr, nil
+}
+
+func unescapeFirst(str string) (string, string, error) {
+	// TODO: make more efficient
+	for i := 2; i <= len(str); i++ {
+		nstr, err := unescape(str[:i])
+		if err == nil {
+			return nstr, str[i:], nil
+		}
+	}
+	return "", "", errors.New("could not find valid string")
 }

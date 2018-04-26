@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/geek1011/kobopatch/patchlib"
@@ -145,7 +144,9 @@ func main() {
 					fataln(i+1, "replace_string malformed: extraneous characters after last argument")
 				}
 				if len(replace) < len(find) {
-					replace = fmt.Sprintf("%"+strconv.Itoa(len(find))+"s", replace)
+					// If replacement shorter than find, append a null to the replacement string to be consistent with the original patch32lsb.
+					replace += "\x00"
+					replace = replace + find[len(replace):]
 				}
 				checkErrn(i+1, p.ReplaceString(offset, find, replace), "replace_string failed")
 			default:

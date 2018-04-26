@@ -1020,7 +1020,7 @@ replace_int = 9F6252, 3, 5
 
 <Patch>
 patch_name = `Keyboard template (Mini/Touch/Glo/Aura)`
-patch_enable = `yes`
+patch_enable = `no`
 # patch_group = `Keyboard alternatives`
 #
 ## Replaces keys on the Extended Latin keypad with custom alternatives.

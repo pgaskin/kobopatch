@@ -47,11 +47,11 @@ func TestFindBaseAddressString(t *testing.T) {
 
 func TestReplaceString(t *testing.T) {
 	p := NewPatcher([]byte(`this is a test`))
-	err(t, p.ReplaceString(0, `this `, `that`))
+	nerr(t, p.ReplaceString(10, `test`, `n`))
 	nerr(t, p.ReplaceString(0, `this `, `that `))
 	err(t, p.ReplaceString(0, `this `, `that `))
 	nerr(t, p.ReplaceString(0, `s`, `5`))
-	eq(t, p.GetBytes(), []byte(`that i5 a test`), "unexpected output")
+	eq(t, p.GetBytes(), []byte("that i5 a n\x00st"), "unexpected output")
 }
 
 func TestReplaceBytes(t *testing.T) {
@@ -85,7 +85,7 @@ func TestAll(t *testing.T) {
 	)
 	eout := append(
 		[]byte{0x33, 0x33, 0x00, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x10, 0x40, 0x01, 0x02, 0x03, 0x04},
-		[]byte(`taht is z test`)...,
+		[]byte("taht\x00is z test")...,
 	)
 
 	p := NewPatcher(in)
@@ -93,9 +93,8 @@ func TestAll(t *testing.T) {
 
 	nerr(t, p.ReplaceInt(0, 255, 0))
 
-	err(t, p.ReplaceString(0, `this `, `that`)) // length mismatch
-	nerr(t, p.ReplaceString(0, `this `, `that `))
-	err(t, p.ReplaceString(0, `this `, `that `)) // no match
+	nerr(t, p.ReplaceString(0, `this `, `that`))
+	err(t, p.ReplaceString(0, `this `, `that`)) // no match
 
 	nerr(t, p.ReplaceFloat(0, 1.05, 4.05))
 

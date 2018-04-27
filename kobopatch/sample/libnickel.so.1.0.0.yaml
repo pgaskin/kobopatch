@@ -1,3 +1,6 @@
+# For firmware version 4.8.10956 (daee2c4220)
+# Compatible with kobopatch v0.4.0 or later
+
 My 10 line spacing values:
   - Enabled: yes
   - PatchGroup: Line spacing values alternatives

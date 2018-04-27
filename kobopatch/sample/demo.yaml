@@ -11,6 +11,13 @@
 Demo Patch Name:
   - Enabled: false # This is a comment
 
+  - Description: |
+      This is the optional description for the patch.
+      If you need to describe individual lines,
+      use comments because you can only have 1
+      description per patch. Notice the pipe 
+      character and this indented block.
+
   - PatchGroup: Group 1 # If set, kobopatch will make sure only 1 patch in a patch group is enabled
   
   - BaseAddress: 0x2A # Hex base address

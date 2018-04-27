@@ -180,6 +180,7 @@ type patchFile map[string]patch
 type patch []instruction
 type instruction struct {
 	Enabled           *bool   `yaml:"Enabled" json:"Enabled"`
+	PatchGroup        *string `yaml:"PatchGroup" json:"PatchGroup"`
 	BaseAddress       *int32  `yaml:"BaseAddress" json:"BaseAddress"`
 	FindBaseAddress   *string `yaml:"FindBaseAddress" json:"FindBaseAddress"`
 	FindReplaceString *struct {
@@ -259,7 +260,8 @@ func (pf *patchFile) ApplyTo(pt *patchlib.Patcher) error {
 
 		for _, i := range p {
 			switch {
-			case i.Enabled != nil:
+			case i.Enabled != nil || i.PatchGroup != nil:
+				// Skip non-instructions
 				err = nil
 			case i.BaseAddress != nil:
 				err = pt.BaseAddress(*i.BaseAddress)
@@ -303,12 +305,20 @@ func (pf *patchFile) ApplyTo(pt *patchlib.Patcher) error {
 }
 
 func (pf *patchFile) validate() error {
+	enabledPatchGroups := map[string]bool{}
 	for n, p := range *pf {
 		ec := 0
+		pgc := 0
+		pg := ""
 		for _, i := range p {
 			ic := 0
 			if i.Enabled != nil {
 				ec++
+				ic++
+			}
+			if i.PatchGroup != nil {
+				pgc++
+				pg = *i.PatchGroup
 				ic++
 			}
 			if i.BaseAddress != nil {
@@ -341,9 +351,17 @@ func (pf *patchFile) validate() error {
 		}
 		if ec < 1 {
 			return fmt.Errorf("no `Enabled` option in `%s`", n)
-		}
-		if ec > 1 {
+		} else if ec > 1 {
 			return fmt.Errorf("more than one `Enabled` option in `%s`", n)
+		}
+		if pgc > 1 {
+			return fmt.Errorf("more than one `PatchGroup` option in `%s`", n)
+		}
+		if pg != "" {
+			if _, ok := enabledPatchGroups[pg]; ok {
+				return fmt.Errorf("more than one patch enabled in PatchGroup `%s`", pg)
+			}
+			enabledPatchGroups[pg] = true
 		}
 	}
 	return nil

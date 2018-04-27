@@ -9,3 +9,4 @@ Disable Reading Footer:
   - FindReplaceString: {Find: "ReadingFooter {\n  qproperty-footerMargin: 105;\n}\n", Replace: "ReadingFooter {min-height:15px;max-height:15px;}\n"}
   - FindReplaceString: {Find: "#caption[qApp_deviceIsTrilogy=true] {\n  font-size: 19px;\n}\n", Replace: "#caption {font-size:1px;color:transparent;}\n\0"}
 
+  

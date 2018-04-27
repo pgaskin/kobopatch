@@ -10,6 +10,8 @@
 # - Easier to add more complex instructions when needed
 Demo Patch Name:
   - Enabled: false # This is a comment
+
+  - PatchGroup: Group 1 # If set, kobopatch will make sure only 1 patch in a patch group is enabled
   
   - BaseAddress: 0x2A # Hex base address
   - BaseAddress: 42 # Int base address

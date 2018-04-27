@@ -185,7 +185,7 @@ type instruction struct {
 	FindReplaceString *struct {
 		Find    string `yaml:"Find" json:"Find"`
 		Replace string `yaml:"Replace" json:"Replace"`
-	} `yaml:"ReplaceString" json:"ReplaceString"`
+	} `yaml:"FindReplaceString" json:"FindReplaceString"`
 	ReplaceString *struct {
 		Offset  int32  `yaml:"Offset" json:"Offset"`
 		Find    string `yaml:"Find" json:"Find"`

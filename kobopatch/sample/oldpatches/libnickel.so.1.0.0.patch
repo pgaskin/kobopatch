@@ -28,7 +28,7 @@
 
 <Patch>
 patch_name = `My 10 line spacing values`
-patch_enable = `no`
+patch_enable = `yes`
 # patch_group = `Line spacing values alternatives`
 #
 ## This patch changes the values on the line spacing adjustment slider,
@@ -158,7 +158,7 @@ replace_float = 0048, 2.8, 1.5
 
 <Patch>
 patch_name = `Custom left & right margins`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 2.8.1 - 4.8.10956+
 #
 ## This patch sets the size of the margins added by the margins adjustment
@@ -268,7 +268,7 @@ replace_bytes = 9866E4, A7 F6 4E E4, 00 46 00 46
 
 <Patch>
 patch_name = `ePub fixed/adjustable top/bottom margins`
-patch_enable = `no`
+patch_enable = `yes`
 # patch_group = `ePub padding-bottom alternatives`
 #
 ## This patch sets the @page margin sizes in epubs, overriding any @page margin
@@ -422,7 +422,7 @@ replace_string = 0001, `p`, `_`
 
 <Patch>
 patch_name = `Custom kepub default margins`
-patch_enable = `no`
+patch_enable = `yes`
 #
 ## Sets the built-in minimum margin for KePub books and Pocket articles to
 ## zero, the same as it is in ePub books. This only affects left/right margins
@@ -443,7 +443,7 @@ replace_int = 5DB5AE, 20, 0
 
 <Patch>
 patch_name = `Block WiFi firmware upgrade`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## WARNING: THIS IS A DANGEROUS PATCH! READ THE INFORMATION BELOW CAREFULLY!
@@ -467,7 +467,7 @@ replace_string = 0013, `%3/%4/%5`, `k/99.9/5`
 
 <Patch>
 patch_name = `Custom footer (page number text)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 2.8.1 - 4.8.10956+
 #
 ## Shortens the page number text in the reading footer, and perhaps elsewhere.
@@ -511,7 +511,7 @@ replace_int = A7E8BA, 60, 240
 
 <Patch>
 patch_name = `Set KePub hyphenation`
-patch_enable = `no`
+patch_enable = `yes`
 #
 ## The built-in KePub stylesheet has a line "* { -webkit-hyphens: auto; }"
 ## to turn on hyphenation, but it is only used if the device's justification
@@ -609,7 +609,7 @@ replace_string = 0074, `2`, `2`
 
 <Patch>
 patch_name = `Force user line spacing in KePubs`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## This patch will allow the line spacing set by the slider to take effect
@@ -637,7 +637,7 @@ replace_string = 0000, `body, p {`, `body *  {`
 
 <Patch>
 patch_name = `Force user line spacing in ePubs (part 1 of 2)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## This is part 1 of 2. Also enable part 2 in librmsdk.so.1.0.0.patch
@@ -660,7 +660,7 @@ replace_string = 0003, `l`, `_`
 
 <Patch>
 patch_name = `Un-force font-family override p tags (std epubs)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 # patch_group = `ePub force font alternatves`
 #
@@ -702,7 +702,7 @@ replace_string = 0000, `f`, `_`
 
 <Patch>
 patch_name = `ePub constant font sharpness`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## With this patch the ePub reader will use a constant sharpness value of 0.2,
@@ -720,7 +720,7 @@ replace_string = 0003, `-kobo-font-sharpness: %1`, `-kobo-font-sharpness:0.2`
 
 <Patch>
 patch_name = `KePub constant font sharpness`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## With this patch the KePub reader will use a constant sharpness value of 0.2,
@@ -740,7 +740,7 @@ replace_string = 005, `-kobo-font-sharpness:0.0`, `-kobo-font-sharpness:0.2`
 
 <Patch>
 patch_name = `Un-Force user text-align in div,p tags in KePubs`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## This patch allows the text alignment set by the publisher in the kepub
@@ -771,7 +771,7 @@ replace_bytes = 99AD2C, 7F F6 BC E2, 00 20 00 20
 
 <Patch>
 patch_name = `Un-Force user font-family in KePubs`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## The KePub reader uses a very heavy-handed method of setting the font selected
@@ -810,7 +810,7 @@ replace_string = 0000, `* { font-family: %1 !important; }\n`, `div,p{font-family
 
 <Patch>
 patch_name = `Un-force link decoration in KePubs`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## Disables the following link decoration CSS in the KePub stylesheet:
@@ -832,7 +832,7 @@ replace_string = 0053, `c`, `_`
 
 <Patch>
 patch_name = `KePub stylesheet additions`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## Makes room to add some additional CSS to the default KePub stylesheet.
@@ -873,7 +873,7 @@ replace_string = 01E2, `.KBAnnotation[writingMode="vertical-lr"], .KBAnnotationC
 
 <Patch>
 patch_name = `Change dicthtml strings to micthtml`
-patch_enable = `no`
+patch_enable = `yes`
 #
 ## This patch is used for something to do with syncing and custom dictionaries.
 ## If you don't know what it does, then you probably don't need it.
@@ -886,7 +886,7 @@ replace_string = C971D4, `/mnt/onboard/.kobo/dict/dicthtml%1`, `/mnt/onboard/.ko
 
 <Patch>
 patch_name = `Allow searches on Extra dictionaries`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## To allow searches on Extra dictionaries change space character at end of
@@ -901,7 +901,7 @@ replace_string = 0007, `\x20`, `_`
 
 <Patch>
 patch_name = `Ignore .otf fonts`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.7.10413 - 4.8.10956+
 #
 ## Ignores all sideloaded and pre-installed .otf fonts.
@@ -915,7 +915,7 @@ replace_string = 000, `*`, `_`
 
 <Patch>
 patch_name = `Brightness fine control`
-patch_enable = `no`
+patch_enable = `yes`
 #
 ## Sun symbols change the frontlight brightness in 2% instead of 1% steps.
 #
@@ -926,7 +926,7 @@ replace_int = 95DD02, 1, 2
 
 <Patch>
 patch_name = `Dictionary text font-family/font-size/line-height - beta`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.4.9298 - 4.8.10956+
 #
 # This patch allows you to to customise the appearance of the text 
@@ -1222,13 +1222,13 @@ patch_enable = `yes`
 
 # The length of the replacement string must be 25
 find_base_address = `Find your next great read`
-replace_string = 0000, `Find your next great read`, `Patrick's Kobo           `
+replace_string = 0000, `Find your next great read`, `                         `
 
 # The length of the replacement string must be 29
 find_base_address = `Buy, borrow, or preview books`
-replace_string = 0000, `Buy, borrow, or preview books`, `Patrick's Kobo               `
+replace_string = 0000, `Buy, borrow, or preview books`, `                             `
 
 # The length of the replacement string must be 9
 find_base_address = `SHOP KOBO`
-replace_string = 0000, `SHOP KOBO`, `4.8.10956`
+replace_string = 0000, `SHOP KOBO`, `         `
 </Patch>

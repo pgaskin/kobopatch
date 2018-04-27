@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -31,7 +32,6 @@ type config struct {
 var log = func(format string, a ...interface{}) {}
 
 func main() {
-	// TODO: add unit tests, finish converting patches to new format
 	fmt.Printf("kobopatch %s\n\n", version)
 
 	cfgbuf, err := ioutil.ReadFile("./kobopatch.yaml")
@@ -197,7 +197,10 @@ func main() {
 	log("patch success\n")
 	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s\n", cfg.Out)
 
-	fmt.Println("\nNote that this tool is not yet complete, so do not install it to your kobo as there may be bugs.")
+	if runtime.GOOS == "windows" {
+		fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")
+		time.Sleep(time.Second * 60)
+	}
 }
 
 func checkErr(err error, msg string) {
@@ -210,6 +213,10 @@ func checkErr(err error, msg string) {
 	} else {
 		log("Fatal: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Fatal: %v\n", err)
+	}
+	if runtime.GOOS == "windows" {
+		fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")
+		time.Sleep(time.Second * 60)
 	}
 	os.Exit(1)
 }

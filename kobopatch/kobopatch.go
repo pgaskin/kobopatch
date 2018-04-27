@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/geek1011/kobopatch/patchlib"
@@ -216,35 +217,37 @@ func checkErr(err error, msg string) {
 type patchFile map[string]patch
 type patch []instruction
 type instruction struct {
-	Enabled           *bool   `yaml:"Enabled" json:"Enabled"`
-	Description       *string `yaml:"Description" json:"Description"`
-	PatchGroup        *string `yaml:"PatchGroup" json:"PatchGroup"`
-	BaseAddress       *int32  `yaml:"BaseAddress" json:"BaseAddress"`
-	FindBaseAddress   *string `yaml:"FindBaseAddress" json:"FindBaseAddress"`
+	Enabled           *bool   `yaml:"Enabled,omitempty"`
+	Description       *string `yaml:"Description,omitempty"`
+	PatchGroup        *string `yaml:"PatchGroup,omitempty"`
+	BaseAddress       *int32  `yaml:"BaseAddress,omitempty"`
+	FindBaseAddress   *string `yaml:"FindBaseAddress,omitempty"`
 	FindReplaceString *struct {
-		Find    string `yaml:"Find" json:"Find"`
-		Replace string `yaml:"Replace" json:"Replace"`
-	} `yaml:"FindReplaceString" json:"FindReplaceString"`
+		Find    string `yaml:"Find,omitempty"`
+		Replace string `yaml:"Replace,omitempty"`
+	} `yaml:"FindReplaceString,omitempty"`
 	ReplaceString *struct {
-		Offset  int32  `yaml:"Offset" json:"Offset"`
-		Find    string `yaml:"Find" json:"Find"`
-		Replace string `yaml:"Replace" json:"Replace"`
-	} `yaml:"ReplaceString" json:"ReplaceString"`
+		Offset  int32  `yaml:"Offset,omitempty"`
+		Find    string `yaml:"Find,omitempty"`
+		Replace string `yaml:"Replace,omitempty"`
+	} `yaml:"ReplaceString,omitempty"`
 	ReplaceInt *struct {
-		Offset  int32 `yaml:"Offset" json:"Offset"`
-		Find    uint8 `yaml:"Find" json:"Find"`
-		Replace uint8 `yaml:"Replace" json:"Replace"`
-	} `yaml:"ReplaceInt" json:"ReplaceInt"`
+		Offset  int32 `yaml:"Offset,omitempty"`
+		Find    uint8 `yaml:"Find,omitempty"`
+		Replace uint8 `yaml:"Replace,omitempty"`
+	} `yaml:"ReplaceInt,omitempty"`
 	ReplaceFloat *struct {
-		Offset  int32   `yaml:"Offset" json:"Offset"`
-		Find    float64 `yaml:"Find" json:"Find"`
-		Replace float64 `yaml:"Replace" json:"Replace"`
-	} `yaml:"ReplaceFloat" json:"ReplaceFloat"`
+		Offset  int32   `yaml:"Offset,omitempty"`
+		Find    float64 `yaml:"Find,omitempty"`
+		Replace float64 `yaml:"Replace,omitempty"`
+	} `yaml:"ReplaceFloat,omitempty"`
 	ReplaceBytes *struct {
-		Offset  int32  `yaml:"Offset" json:"Offset"`
-		Find    []byte `yaml:"Find" json:"Find"`
-		Replace []byte `yaml:"Replace" json:"Replace"`
-	} `yaml:"ReplaceBytes" json:"ReplaceBytes"`
+		Offset   int32   `yaml:"Offset,omitempty"`
+		FindH    *string `yaml:"FindH,omitempty"`
+		ReplaceH *string `yaml:"ReplaceH,omitempty"`
+		Find     []byte  `yaml:"Find,omitempty"`
+		Replace  []byte  `yaml:"Replace,omitempty"`
+	} `yaml:"ReplaceBytes,omitempty"`
 }
 
 func newPatchFile(filename string) (*patchFile, error) {
@@ -259,6 +262,40 @@ func newPatchFile(filename string) (*patchFile, error) {
 	err = yaml.UnmarshalStrict(buf, &pf)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing patch file: %v", err)
+	}
+
+	log("        parsing patch file: expanding shorthand hex values\n")
+	for n := range *pf {
+		for i := range (*pf)[n] {
+			if (*pf)[n][i].ReplaceBytes != nil {
+				if ((*pf)[n][i].ReplaceBytes).FindH != nil {
+					hex := *((*pf)[n][i].ReplaceBytes).FindH
+					_, err := fmt.Sscanf(
+						strings.Replace(hex, " ", "", -1),
+						"%x\n",
+						&((*pf)[n][i].ReplaceBytes).Find,
+					)
+					if err != nil {
+						log("          error decoding hex `%s`: %v\n", hex, err)
+						return nil, fmt.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
+					}
+					log("          decoded hex `%s` to `%v`\n", hex, ((*pf)[n][i].ReplaceBytes).Find)
+				}
+				if ((*pf)[n][i].ReplaceBytes).ReplaceH != nil {
+					hex := *((*pf)[n][i].ReplaceBytes).ReplaceH
+					_, err := fmt.Sscanf(
+						strings.Replace(hex, " ", "", -1),
+						"%x\n",
+						&((*pf)[n][i].ReplaceBytes).Replace,
+					)
+					if err != nil {
+						log("          error decoding hex `%s`: %v\n", hex, err)
+						return nil, fmt.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
+					}
+					log("          decoded hex `%s` to `%v`\n", hex, ((*pf)[n][i].ReplaceBytes).Replace)
+				}
+			}
+		}
 	}
 
 	log("        validating patch file\n")

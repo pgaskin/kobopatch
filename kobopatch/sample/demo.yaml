@@ -59,4 +59,12 @@ Demo Patch Name:
 
   - ReplaceBytes: {Offset: 0x0, Find: [0xAA, 0xBB, 0xCC], Replace: [0xDD, 0xEE, 0xFF]}
 
+  # Shorthand hex for ReplaceBytes:
+  - ReplaceBytes:
+    Offset: 0x0
+    FindH: AA BB CC
+    ReplaceH: DD EE FF
+
+  - ReplaceBytes: {Offset: 0x0, Find: AABBCC, Replace: DDEEFF}
+
   # zlib support and CSS patching coming soon

@@ -23,6 +23,11 @@ Demo Patch Name:
 
   # You can also write instructions in one line
   - ReplaceString: {Offset: 0x0, Find: "asd", Replace: "fgh"}
+
+  # NEW: The FindReplaceString function combines FindBaseAddress and ReplaceString.
+  - FindReplaceString:
+    Find: "asd" # This does FindBaseAddress and is also the Find for ReplaceString
+    Replace: "fgh" # Must be the same length or shorter than Find just like in ReplaceString.
   
   - ReplaceInt:
     Offset: 0x0

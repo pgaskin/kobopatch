@@ -179,10 +179,14 @@ func checkErr(err error, msg string) {
 type patchFile map[string]patch
 type patch []instruction
 type instruction struct {
-	Enabled         *bool   `yaml:"Enabled" json:"Enabled"`
-	BaseAddress     *int32  `yaml:"BaseAddress" json:"BaseAddress"`
-	FindBaseAddress *string `yaml:"FindBaseAddress" json:"FindBaseAddress"`
-	ReplaceString   *struct {
+	Enabled           *bool   `yaml:"Enabled" json:"Enabled"`
+	BaseAddress       *int32  `yaml:"BaseAddress" json:"BaseAddress"`
+	FindBaseAddress   *string `yaml:"FindBaseAddress" json:"FindBaseAddress"`
+	FindReplaceString *struct {
+		Find    string `yaml:"Find" json:"Find"`
+		Replace string `yaml:"Replace" json:"Replace"`
+	} `yaml:"ReplaceString" json:"ReplaceString"`
+	ReplaceString *struct {
 		Offset  int32  `yaml:"Offset" json:"Offset"`
 		Find    string `yaml:"Find" json:"Find"`
 		Replace string `yaml:"Replace" json:"Replace"`
@@ -273,6 +277,18 @@ func (pf *patchFile) ApplyTo(pt *patchlib.Patcher) error {
 			case i.ReplaceString != nil:
 				r := *i.ReplaceString
 				err = pt.ReplaceString(r.Offset, r.Find, r.Replace)
+			case i.FindReplaceString != nil:
+				r := *i.FindReplaceString
+				err = pt.FindBaseAddressString(r.Find)
+				if err != nil {
+					err = fmt.Errorf("FindReplaceString: %v", err)
+					break
+				}
+				err = pt.ReplaceString(0, r.Find, r.Replace)
+				if err != nil {
+					err = fmt.Errorf("FindReplaceString: %v", err)
+					break
+				}
 			default:
 				err = fmt.Errorf("invalid instruction: %#v", i)
 			}

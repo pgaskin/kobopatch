@@ -9,7 +9,7 @@
 # - More complete error checking to prevent mistakes
 # - Easier to add more complex instructions when needed
 Demo Patch Name:
-  - Enabled: false # This is a comment
+  - Enabled: false # You can also use yes/no
 
   - Description: |
       This is the optional description for the patch.

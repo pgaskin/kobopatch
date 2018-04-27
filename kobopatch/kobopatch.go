@@ -41,6 +41,10 @@ func main() {
 		checkErr(errors.New("version, in, and out are required"), "Could not parse kobopatch.yaml")
 	}
 
+	if !cfg.UseNewPatchFormat {
+		checkErr(errors.New("only the new patch format is supported"), "Error")
+	}
+
 	zipr, err := zip.OpenReader(cfg.In)
 	checkErr(err, "Could not open input file")
 	defer zipr.Close()

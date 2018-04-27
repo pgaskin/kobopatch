@@ -2,7 +2,6 @@ version: 4.8.10956
 in: kobo-update-4.8.10956.zip
 out: KoboRoot.tgz
 
-# The patches in the form: patchfilename: path/to/file/on/kobo
 patches:
   nickel.patch: usr/local/Kobo/nickel
   libadobe.so.1.0.0.patch: usr/local/Kobo/libadobe.so

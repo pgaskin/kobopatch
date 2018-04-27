@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -22,11 +23,13 @@ type config struct {
 }
 
 func main() {
+	// TODO: args for verbose mode, custom config path
+
 	cfgbuf, err := ioutil.ReadFile("./kobopatch.yaml")
 	checkErr(err, "Could not read kobopatch.yaml")
 
 	cfg := &config{}
-	err = yaml.Unmarshal(cfgbuf, &cfg)
+	err = yaml.UnmarshalStrict(cfgbuf, &cfg)
 	checkErr(err, "Could not parse kobopatch.yaml")
 
 	if cfg.Version == "" || cfg.In == "" || cfg.Out == "" {
@@ -85,11 +88,57 @@ func main() {
 		}
 
 		fmt.Printf("Patching %s\n", h.Name)
+
+		if h.Typeflag != tar.TypeReg {
+			checkErr(errors.New("not a regular file"), "Could not patch file")
+		}
+
+		fbuf, err := ioutil.ReadAll(tr)
+		checkErr(err, "Could not read file contents from KoboRoot.tgz")
+
+		// TODO: patching stuff here
+		// TODO: custom patch format
+
+		// Preserve attributes (VERY IMPORTANT)
+		err = outtw.WriteHeader(&tar.Header{
+			Typeflag:   h.Typeflag,
+			Name:       h.Name,
+			Mode:       h.Mode,
+			Uid:        h.Uid,
+			Gid:        h.Gid,
+			ModTime:    time.Now(),
+			Uname:      h.Uname,
+			Gname:      h.Gname,
+			PAXRecords: h.PAXRecords,
+			Size:       int64(len(fbuf)),
+		})
+		checkErr(err, "Could not write new header to patched KoboRoot.tgz")
+
+		i, err := outtw.Write(fbuf)
+		checkErr(err, "Could not write new file to patched KoboRoot.tgz")
+		if i != len(fbuf) {
+			checkErr(errors.New("could not write whole file"), "Could not write new file to patched KoboRoot.tgz")
+		}
 	}
 
-	fmt.Println("This is not complete, so the output file has not been written.")
+	os.Remove(cfg.Out)
 
-	// TODO: write logfile, delay exit on windows, write output, actually do patching, custom patch format
+	err = outtw.Flush()
+	checkErr(err, "Could not finish writing patched tar")
+	err = outtw.Close()
+	checkErr(err, "Could not finish writing patched tar")
+
+	err = outzw.Flush()
+	checkErr(err, "Could not finish writing compressed patched tar")
+	err = outzw.Close()
+	checkErr(err, "Could not finish writing compressed patched tar")
+
+	err = ioutil.WriteFile(cfg.Out, outw.Bytes(), 0644)
+	checkErr(err, "Could not write patched KoboRoot.tgz")
+
+	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s\n", cfg.Out)
+
+	fmt.Println("\nNote that this tool is not complete yet, so the files were not actually patched.")
 }
 
 func fataln(n int, msg string) {

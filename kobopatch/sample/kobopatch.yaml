@@ -2,8 +2,10 @@ version: 4.8.10956
 in: kobo-update-4.8.10956.zip
 out: KoboRoot.tgz
 
+useNewPatchFormat: true
+
 patches:
-  nickel.patch: usr/local/Kobo/nickel
-  libadobe.so.1.0.0.patch: usr/local/Kobo/libadobe.so
-  libnickel.so.1.0.0.patch: usr/local/Kobo/libnickel.so.1.0.0
-  librmsdk.so.1.0.0.patch: usr/local/Kobo/librmsdk.so.1.0.0
+  nickel.yaml: usr/local/Kobo/nickel
+  libadobe.so.yaml: usr/local/Kobo/libadobe.so
+  libnickel.so.1.0.0.yaml: usr/local/Kobo/libnickel.so.1.0.0
+  librmsdk.so.1.0.0.yaml: usr/local/Kobo/librmsdk.so.1.0.0

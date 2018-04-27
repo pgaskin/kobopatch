@@ -12,18 +12,23 @@ import (
 	"os"
 	"time"
 
+	"github.com/geek1011/kobopatch/patchlib"
 	yaml "gopkg.in/yaml.v2"
 )
 
+var version = "unknown"
+
 type config struct {
-	Version string            `yaml:"version" json:"version"`
-	In      string            `yaml:"in" json:"in"`
-	Out     string            `yaml:"out" json:"out"`
-	Patches map[string]string `yaml:"patches" json:"patches"`
+	Version           string            `yaml:"version" json:"version"`
+	In                string            `yaml:"in" json:"in"`
+	Out               string            `yaml:"out" json:"out"`
+	UseNewPatchFormat bool              `yaml:"useNewPatchFormat" json:"useNewPatchFormat"`
+	Patches           map[string]string `yaml:"patches" json:"patches"`
 }
 
 func main() {
-	// TODO: args for verbose mode, custom config path
+	// TODO: args for verbose mode and custom config path, add logfile, add unit tests, add patch group checking, finish converting patches to new format
+	fmt.Printf("kobopatch %s\n\n", version)
 
 	cfgbuf, err := ioutil.ReadFile("./kobopatch.yaml")
 	checkErr(err, "Could not read kobopatch.yaml")
@@ -76,9 +81,11 @@ func main() {
 		checkErr(err, "Could not read entry from KoboRoot.tgz")
 
 		var needsPatching bool
-		for _, f := range cfg.Patches {
+		var pfn string
+		for n, f := range cfg.Patches {
 			if h.Name == "./"+f || h.Name == f {
 				needsPatching = true
+				pfn = n
 				break
 			}
 		}
@@ -96,8 +103,15 @@ func main() {
 		fbuf, err := ioutil.ReadAll(tr)
 		checkErr(err, "Could not read file contents from KoboRoot.tgz")
 
-		// TODO: patching stuff here
-		// TODO: custom patch format
+		pt := patchlib.NewPatcher(fbuf)
+
+		pf, err := newPatchFile(pfn)
+		checkErr(err, "Could not read and parse patch file "+pfn)
+
+		err = pf.ApplyTo(pt)
+		checkErr(err, "Could not apply patch file "+pfn)
+
+		fbuf = pt.GetBytes()
 
 		// Preserve attributes (VERY IMPORTANT)
 		err = outtw.WriteHeader(&tar.Header{
@@ -138,7 +152,7 @@ func main() {
 
 	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s\n", cfg.Out)
 
-	fmt.Println("\nNote that this tool is not complete yet, so the files were not actually patched.")
+	fmt.Println("\nNote that this tool is not yet complete, so do not install it to your kobo as there may be bugs.")
 }
 
 func fataln(n int, msg string) {
@@ -156,4 +170,158 @@ func checkErr(err error, msg string) {
 		fmt.Fprintf(os.Stderr, "Fatal: %v\n", err)
 	}
 	os.Exit(1)
+}
+
+type patchFile map[string]patch
+type patch []instruction
+type instruction struct {
+	Enabled         *bool   `yaml:"Enabled" json:"Enabled"`
+	BaseAddress     *int32  `yaml:"BaseAddress" json:"BaseAddress"`
+	FindBaseAddress *string `yaml:"FindBaseAddress" json:"FindBaseAddress"`
+	ReplaceString   *struct {
+		Offset  int32  `yaml:"Offset" json:"Offset"`
+		Find    string `yaml:"Find" json:"Find"`
+		Replace string `yaml:"Replace" json:"Replace"`
+	} `yaml:"ReplaceString" json:"ReplaceString"`
+	ReplaceInt *struct {
+		Offset  int32 `yaml:"Offset" json:"Offset"`
+		Find    uint8 `yaml:"Find" json:"Find"`
+		Replace uint8 `yaml:"Replace" json:"Replace"`
+	} `yaml:"ReplaceInt" json:"ReplaceInt"`
+	ReplaceFloat *struct {
+		Offset  int32   `yaml:"Offset" json:"Offset"`
+		Find    float64 `yaml:"Find" json:"Find"`
+		Replace float64 `yaml:"Replace" json:"Replace"`
+	} `yaml:"ReplaceFloat" json:"ReplaceFloat"`
+	ReplaceBytes *struct {
+		Offset  int32  `yaml:"Offset" json:"Offset"`
+		Find    []byte `yaml:"Find" json:"Find"`
+		Replace []byte `yaml:"Replace" json:"Replace"`
+	} `yaml:"ReplaceBytes" json:"ReplaceBytes"`
+}
+
+func newPatchFile(filename string) (*patchFile, error) {
+	buf, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("error reading patch file: %v", err)
+	}
+
+	pf := &patchFile{}
+	err = yaml.UnmarshalStrict(buf, &pf)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing patch file: %v", err)
+	}
+
+	err = pf.validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid patch file: %v", err)
+	}
+
+	return pf, nil
+}
+
+func (pf *patchFile) ApplyTo(pt *patchlib.Patcher) error {
+	err := pf.validate()
+	if err != nil {
+		err = fmt.Errorf("invalid patch file: %v", err)
+		fmt.Printf("  Error: %v\n", err)
+		return err
+	}
+
+	num, total := 0, len(*pf)
+	for n, p := range *pf {
+		var err error
+		num++
+		pt.ResetBaseAddress()
+
+		enabled := false
+		for _, i := range p {
+			if i.Enabled != nil && *i.Enabled {
+				enabled = *i.Enabled
+				break
+			}
+		}
+
+		if !enabled {
+			fmt.Printf("  [%d/%d] Skipping disabled patch `%s`\n", num, total, n)
+			continue
+		}
+
+		fmt.Printf("  [%d/%d] Applying patch `%s`\n", num, total, n)
+
+		for _, i := range p {
+			switch {
+			case i.Enabled != nil:
+				err = nil
+			case i.BaseAddress != nil:
+				err = pt.BaseAddress(*i.BaseAddress)
+			case i.FindBaseAddress != nil:
+				err = pt.FindBaseAddressString(*i.FindBaseAddress)
+			case i.ReplaceBytes != nil:
+				r := *i.ReplaceBytes
+				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
+			case i.ReplaceFloat != nil:
+				r := *i.ReplaceFloat
+				err = pt.ReplaceFloat(r.Offset, r.Find, r.Replace)
+			case i.ReplaceInt != nil:
+				r := *i.ReplaceInt
+				err = pt.ReplaceInt(r.Offset, r.Find, r.Replace)
+			case i.ReplaceString != nil:
+				r := *i.ReplaceString
+				err = pt.ReplaceString(r.Offset, r.Find, r.Replace)
+			default:
+				err = fmt.Errorf("invalid instruction: %#v", i)
+			}
+
+			if err != nil {
+				fmt.Printf("    Error: could not apply patch: %v\n", err)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (pf *patchFile) validate() error {
+	for n, p := range *pf {
+		ec := 0
+		for _, i := range p {
+			ic := 0
+			if i.Enabled != nil {
+				ec++
+				ic++
+			}
+			if i.BaseAddress != nil {
+				ic++
+			}
+			if i.FindBaseAddress != nil {
+				ic++
+			}
+			if i.ReplaceBytes != nil {
+				ic++
+			}
+			if i.ReplaceFloat != nil {
+				ic++
+			}
+			if i.ReplaceInt != nil {
+				ic++
+			}
+			if i.ReplaceString != nil {
+				ic++
+			}
+			if ic < 1 {
+				return fmt.Errorf("internal error while validating `%s` (you should report this as a bug)", n)
+			}
+			if ic > 1 {
+				return fmt.Errorf("more than one instruction per bullet in patch `%s` (you might be missing a -)", n)
+			}
+		}
+		if ec < 1 {
+			return fmt.Errorf("no `Enabled` option in `%s`", n)
+		}
+		if ec > 1 {
+			return fmt.Errorf("more than one `Enabled` option in `%s`", n)
+		}
+	}
+	return nil
 }

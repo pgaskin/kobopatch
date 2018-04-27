@@ -4,10 +4,11 @@ An improved alternative to patch32lsb. WIP.
 **Progress:**
 - [X] Core patching functionality (./patchlib)
 - [X] Drop-in replacement for patch32lsb with exactly the same output and features (./patch32lsb)
+- [X] All-in-one patcher (base features) (./kobopatch)
 - [ ] All-in-one patcher (./kobopatch)
 - [ ] Zlib support
 - [ ] Automatic builds
-- [ ] Alternative patch format (which has more reliable and less complex parsing)
+- [X] Alternative patch format (which has more reliable and has less complex parsing)
 
 **Improvements/Goals:**
 - More readable code

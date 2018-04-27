@@ -1,0 +1,48 @@
+# The following patch is just to demonstrate the patch format.
+#
+# This patch format may seem more verbose, but I plan to make a shorthand version.
+# This format comes with many benefits, for example:
+# - Simpler and more predictable parsing
+# - Easier to understand at first glance
+# - More flexibility (many ways to represent numbers, can use any YAML feature)
+# - Easier to reuse and extend
+# - More complete error checking to prevent mistakes
+# - Easier to add more complex instructions when needed
+Demo Patch Name:
+  - Enabled: false # This is a comment
+  
+  - BaseAddress: 0x2A # Hex base address
+  - BaseAddress: 42 # Int base address
+  
+  - FindBaseAddress: "test\0test\t\n\v\f\e\x23dfgdfg" # Demonstration of the escape codes
+  
+  - ReplaceString:
+    Offset: 0x0 # You can also use a number
+    Find: "asd"
+    Replace: "fgh"
+
+  # You can also write instructions in one line
+  - ReplaceString: {Offset: 0x0, Find: "asd", Replace: "fgh"}
+  
+  - ReplaceInt:
+    Offset: 0x0
+    Find: 5 # You can also use a hex (with the prefix 0x)
+    Replace: 10 # You can also use a hex (with the prefix 0x)
+  
+  - ReplaceInt: {Offset: 0x0, Find: 5, Replace: 10}
+
+  - ReplaceFloat:
+    Offset: 0x0
+    Find: 1.23
+    Replace: 4.56
+
+  - ReplaceFloat: {Offset: 0x0, Find: 1.23, Replace: 4.56}
+  
+  - ReplaceBytes:
+    Offset: 0x0
+    Find: [0xAA, 0xBB, 0xCC]
+    Replace: [0xDD, 0xEE, 0xFF]
+
+  - ReplaceBytes: {Offset: 0x0, Find: [0xAA, 0xBB, 0xCC], Replace: [0xDD, 0xEE, 0xFF]}
+
+  # zlib support and CSS patching coming soon

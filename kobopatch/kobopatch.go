@@ -341,12 +341,12 @@ func (pf *patchFile) ApplyTo(pt *patchlib.Patcher) error {
 		log("          Enabled: %t\n", enabled)
 
 		if !enabled {
-			log("        skipping patch `%s`\n", n)
+			log("          skipping patch `%s`\n", n)
 			fmt.Printf("  [%d/%d] Skipping disabled patch `%s`\n", num, total, n)
 			continue
 		}
 
-		log("        applying patch `%s`\n", n)
+		log("          applying patch `%s`\n", n)
 		fmt.Printf("  [%d/%d] Applying patch `%s`\n", num, total, n)
 
 		log("        looping over instructions\n")

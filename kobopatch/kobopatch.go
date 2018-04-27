@@ -308,12 +308,14 @@ func (pf *patchFile) validate() error {
 	enabledPatchGroups := map[string]bool{}
 	for n, p := range *pf {
 		ec := 0
+		e := false
 		pgc := 0
 		pg := ""
 		for _, i := range p {
 			ic := 0
 			if i.Enabled != nil {
 				ec++
+				e = *i.Enabled
 				ic++
 			}
 			if i.PatchGroup != nil {
@@ -357,7 +359,7 @@ func (pf *patchFile) validate() error {
 		if pgc > 1 {
 			return fmt.Errorf("more than one `PatchGroup` option in `%s`", n)
 		}
-		if pg != "" {
+		if pg != "" && e {
 			if _, ok := enabledPatchGroups[pg]; ok {
 				return fmt.Errorf("more than one patch enabled in PatchGroup `%s`", pg)
 			}

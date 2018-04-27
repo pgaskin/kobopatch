@@ -329,6 +329,9 @@ func (pf *patchFile) validate() error {
 			if i.ReplaceString != nil {
 				ic++
 			}
+			if i.FindReplaceString != nil {
+				ic++
+			}
 			if ic < 1 {
 				return fmt.Errorf("internal error while validating `%s` (you should report this as a bug)", n)
 			}

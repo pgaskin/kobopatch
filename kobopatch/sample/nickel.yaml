@@ -71,7 +71,7 @@ Custom reading footer style:
   # Unlike other strings it is OK if this replacement string is a bit longer or
   # shorter than the original.
   #
-  #  - ReplaceString: {Offset: 0x01E0, Find: "#caption[qApp_localeName="ja_JP"] {font-family:Sans-SerifJP,sans-serif;font-style:normal}\n", Replace: "#caption {font-family:Georgia}\n\0"}
+  #  - ReplaceString: {Offset: 0x01E0, Find: "#caption[qApp_localeName=\"ja_JP\"] {font-family:Sans-SerifJP,sans-serif;font-style:normal}\n", Replace: "#caption {font-family:Georgia}\n\0"}
 
 
 # Multi-version patch: 4.3.8842 - 4.8.10956+

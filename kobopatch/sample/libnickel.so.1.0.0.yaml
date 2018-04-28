@@ -841,7 +841,200 @@ Clock display duration:
   - ReplaceInt: {Offset: 0x9F6252, Find: 3, Replace: 5}
 
 
-## TODO: Port keyboard patches
+
+Keyboard template (Mini/Touch/Glo/Aura):
+  - Enabled: yes
+  - PatchGroup: Keyboard alternatives
+  #
+  ## Replaces keys on the Extended Latin keypad with custom alternatives.
+  ## Edit the replace_string values below to select which keys to replace.
+  ##
+  ## Note that after the device boots, the keypad might just show blank squares
+  ## until after the first book has been opened.
+  ## Also note that long-pressing keys on the base keypad will no longer show
+  ## the appropriate list of Extended Latin keys.
+  #
+  # Enable uppercase for `ß` (sharp s) key
+  - ReplaceBytes: {Offset: 0x8F803E, FindH: 00 24, ReplaceH: 01 24}
+  # Enable uppercase for `ƒ` (script f) key
+  - ReplaceBytes: {Offset: 0x8F80C6, FindH: 80 F0 01 00, ReplaceH: 01 20 01 20}
+  # Replace layout sign
+  - FindBaseAddressString: "ÉÀÇ"
+  - ReplaceString: {Offset: 0x0000, Find: "ÉÀÇ", Replace: "ÉÀÇ"}
+  # Change keyboard layout
+  - FindBaseAddressString: "ý\0\0ÿ\0\0š\0\0ž\0\0"
+  # Top row, left to right (10 keys):
+  - ReplaceString: {Offset: 0x0010, Find: "æ\0", Replace: "æ"}
+  - ReplaceString: {Offset: 0x0014, Find: "œ\0", Replace: "œ"}
+  - ReplaceString: {Offset: 0x0018, Find: "þ\0", Replace: "þ"}
+  - ReplaceString: {Offset: 0x0008, Find: "š\0", Replace: "š"}
+  - ReplaceString: {Offset: 0x000C, Find: "ž\0", Replace: "ž"}
+  - ReplaceString: {Offset: 0x0020, Find: "ŀ\0", Replace: "ŀ"}
+  - ReplaceString: {Offset: -44, Find: "ƒ\0", Replace: "ƒ"}
+  - ReplaceString: {Offset: 0x0024, Find: "μ\0", Replace: "μ"}
+  - ReplaceString: {Offset: 0x0028, Find: "ª\0", Replace: "ª"}
+  - ReplaceString: {Offset: 0x002C, Find: "º\0", Replace: "º"}
+  # Second row, left to right (11 keys):
+  - ReplaceString: {Offset: 0x0030, Find: "à\0", Replace: "à"}
+  - ReplaceString: {Offset: 0x0048, Find: "è\0", Replace: "è"}
+  - ReplaceString: {Offset: 0x0058, Find: "ì\0", Replace: "ì"}
+  - ReplaceString: {Offset: 0x005C, Find: "ò\0", Replace: "ò"}
+  - ReplaceString: {Offset: 0x0060, Find: "ù\0", Replace: "ù"}
+  - ReplaceString: {Offset: 0x0034, Find: "á\0", Replace: "á"}
+  - ReplaceString: {Offset: 0x004C, Find: "é\0", Replace: "é"}
+  - ReplaceString: {Offset: 0x0064, Find: "í\0", Replace: "í"}
+  - ReplaceString: {Offset: 0x0068, Find: "ó\0", Replace: "ó"}
+  - ReplaceString: {Offset: 0x006C, Find: "ú\0", Replace: "ú"}
+  - ReplaceString: {Offset: 0x0000, Find: "ý\0", Replace: "ý"}
+  # Third row, left to right (11 keys):
+  - ReplaceString: {Offset: 0x0038, Find: "â\0", Replace: "â"}
+  - ReplaceString: {Offset: 0x0050, Find: "ê\0", Replace: "ê"}
+  - ReplaceString: {Offset: 0x0080, Find: "î\0", Replace: "î"}
+  - ReplaceString: {Offset: 0x0070, Find: "ô\0", Replace: "ô"}
+  - ReplaceString: {Offset: 0x0088, Find: "û\0", Replace: "û"}
+  - ReplaceString: {Offset: 0x003C, Find: "ä\0", Replace: "ä"}
+  - ReplaceString: {Offset: 0x0054, Find: "ë\0", Replace: "ë"}
+  - ReplaceString: {Offset: 0x0084, Find: "ï\0", Replace: "ï"}
+  - ReplaceString: {Offset: 0x0074, Find: "ö\0", Replace: "ö"}
+  - ReplaceString: {Offset: 0x008C, Find: "ü\0", Replace: "ü"}
+  - ReplaceString: {Offset: 0x0004, Find: "ÿ\0", Replace: "ÿ"}
+  # Fourth row, left to right (10 keys):
+  - ReplaceString: {Offset: 0x0040, Find: "ã\0", Replace: "ã"}
+  - ReplaceString: {Offset: 0x0090, Find: "ñ\0", Replace: "ñ"}
+  - ReplaceString: {Offset: 0x0078, Find: "õ\0", Replace: "õ"}
+  - ReplaceString: {Offset: 0x0044, Find: "å\0", Replace: "å"}
+  - ReplaceString: {Offset: -48, Find: "ß\0", Replace: "ß"}
+  - ReplaceString: {Offset: 0x0094, Find: "ç\0", Replace: "ç"}
+  - ReplaceString: {Offset: 0x0098, Find: "đ\0", Replace: "đ"}
+  - ReplaceString: {Offset: 0x007C, Find: "ø\0", Replace: "ø"}
+  - ReplaceString: {Offset: 0x001C, Find: "ĳ\0", Replace: "ĳ"}
+  - ReplaceString: {Offset: 0x009C, Find: "ł\0", Replace: "ł"}
+
+
+
+
+Keyboard template (AuraHD/H2O):
+  - Enabled: no
+  - PatchGroup: Keyboard alternatives
+  #
+  ## Replaces keys on the Extended Latin keypad with custom alternatives.
+  ## Edit the replace_string values below to select which keys to replace.
+  ##
+  ## Note that after the device boots, the keypad might just show blank squares
+  ## until after the first book has been opened.
+  ## Also note that long-pressing keys on the base keypad will no longer show
+  ## the appropriate list of Extended Latin keys.
+  #
+  # Enable uppercase for `ß` (sharp s) key
+  - ReplaceBytes: {Offset: 0x8F803E, FindH: 00 24, ReplaceH: 01 24}
+  # Replace layout sign
+  - FindBaseAddressString: "ÉÀÇ"
+  - ReplaceString: {Offset: 0x0000, Find: "ÉÀÇ", Replace: "ÉÀÇ"}
+  # Change keyboard layout
+  - FindBaseAddressString: "ý\0\0ÿ\0\0š\0\0ž\0\0"
+  # (Top row cannot be changed.)
+  # Second row, left to right (12 keys):
+  - ReplaceString: {Offset: 0x0010, Find: "æ\0", Replace: "æ"}
+  - ReplaceString: {Offset: 0x0030, Find: "à\0", Replace: "à"}
+  - ReplaceString: {Offset: 0x0048, Find: "è\0", Replace: "è"}
+  - ReplaceString: {Offset: 0x0058, Find: "ì\0", Replace: "ì"}
+  - ReplaceString: {Offset: 0x005C, Find: "ò\0", Replace: "ò"}
+  - ReplaceString: {Offset: 0x0060, Find: "ù\0", Replace: "ù"}
+  - ReplaceString: {Offset: 0x0034, Find: "á\0", Replace: "á"}
+  - ReplaceString: {Offset: 0x004C, Find: "é\0", Replace: "é"}
+  - ReplaceString: {Offset: 0x0064, Find: "í\0", Replace: "í"}
+  - ReplaceString: {Offset: 0x0068, Find: "ó\0", Replace: "ó"}
+  - ReplaceString: {Offset: 0x006C, Find: "ú\0", Replace: "ú"}
+  - ReplaceString: {Offset: 0x0000, Find: "ý\0", Replace: "ý"}
+  # Third row, left to right (12 keys):
+  - ReplaceString: {Offset: 0x0014, Find: "œ\0", Replace: "œ"}
+  - ReplaceString: {Offset: 0x0038, Find: "â\0", Replace: "â"}
+  - ReplaceString: {Offset: 0x0050, Find: "ê\0", Replace: "ê"}
+  - ReplaceString: {Offset: 0x0080, Find: "î\0", Replace: "î"}
+  - ReplaceString: {Offset: 0x0070, Find: "ô\0", Replace: "ô"}
+  - ReplaceString: {Offset: 0x0088, Find: "û\0", Replace: "û"}
+  - ReplaceString: {Offset: 0x003C, Find: "ä\0", Replace: "ä"}
+  - ReplaceString: {Offset: 0x0054, Find: "ë\0", Replace: "ë"}
+  - ReplaceString: {Offset: 0x0084, Find: "ï\0", Replace: "ï"}
+  - ReplaceString: {Offset: 0x0074, Find: "ö\0", Replace: "ö"}
+  - ReplaceString: {Offset: 0x008C, Find: "ü\0", Replace: "ü"}
+  - ReplaceString: {Offset: 0x0004, Find: "ÿ\0", Replace: "ÿ"}
+  # Fourth row, left to right (10 keys):
+  - ReplaceString: {Offset: 0x0040, Find: "ã\0", Replace: "ã"}
+  - ReplaceString: {Offset: 0x0090, Find: "ñ\0", Replace: "ñ"}
+  - ReplaceString: {Offset: 0x0078, Find: "õ\0", Replace: "õ"}
+  - ReplaceString: {Offset: 0x0044, Find: "å\0", Replace: "å"}
+  - ReplaceString: {Offset: -48, Find: "ß\0", Replace: "ß"}
+  - ReplaceString: {Offset: 0x0094, Find: "ç\0", Replace: "ç"}
+  - ReplaceString: {Offset: 0x0098, Find: "đ\0", Replace: "đ"}
+  - ReplaceString: {Offset: 0x007C, Find: "ø\0", Replace: "ø"}
+  - ReplaceString: {Offset: 0x001C, Find: "ĳ\0", Replace: "ĳ"}
+  - ReplaceString: {Offset: 0x009C, Find: "ł\0", Replace: "ł"}
+
+
+
+
+Keyboard template (GloHD/AuraOne/H2O2):
+  - Enabled: no
+  - PatchGroup: Keyboard alternatives
+  #
+  ## Replaces keys on the Extended Latin keypad with custom alternatives.
+  ## Edit the replace_string values below to select which keys to replace.
+  ##
+  ## Note that after the device boots, the keypad might just show blank squares
+  ## until after the first book has been opened.
+  ## Also note that long-pressing keys on the base keypad will no longer show
+  ## the appropriate list of Extended Latin keys.
+  #
+  # Enable uppercase for `ß` (sharp s) key
+  - ReplaceBytes: {Offset: 0x8F803E, FindH: 00 24, ReplaceH: 01 24}
+  # Replace layout sign
+  - FindBaseAddressString: "ÉÀÇ"
+  - ReplaceString: {Offset: 0x0000, Find: "ÉÀÇ", Replace: "ÉÀÇ"}
+  # Change keyboard layout
+  - FindBaseAddressString: "ý\0\0ÿ\0\0š\0\0ž\0\0"
+  # Top row, left to right (10 keys):
+  - ReplaceString: {Offset: 0x0000, Find: "ý\0", Replace: "ý"}
+  - ReplaceString: {Offset: 0x0004, Find: "ÿ\0", Replace: "ÿ"}
+  - ReplaceString: {Offset: 0x0008, Find: "š\0", Replace: "š"}
+  - ReplaceString: {Offset: 0x000C, Find: "ž\0", Replace: "ž"}
+  - ReplaceString: {Offset: 0x0010, Find: "æ\0", Replace: "æ"}
+  - ReplaceString: {Offset: 0x0014, Find: "œ\0", Replace: "œ"}
+  - ReplaceString: {Offset: 0x0018, Find: "þ\0", Replace: "þ"}
+  - ReplaceString: {Offset: -48, Find: "ß\0", Replace: "ß"}
+  - ReplaceString: {Offset: 0x001C, Find: "ĳ\0", Replace: "ĳ"}
+  - ReplaceString: {Offset: 0x0020, Find: "ŀ\0", Replace: "ŀ"}
+  # Second row, left to right (10 keys):
+  - ReplaceString: {Offset: 0x0030, Find: "à\0", Replace: "à"}
+  - ReplaceString: {Offset: 0x0034, Find: "á\0", Replace: "á"}
+  - ReplaceString: {Offset: 0x0038, Find: "â\0", Replace: "â"}
+  - ReplaceString: {Offset: 0x003C, Find: "ä\0", Replace: "ä"}
+  - ReplaceString: {Offset: 0x0040, Find: "ã\0", Replace: "ã"}
+  - ReplaceString: {Offset: 0x0044, Find: "å\0", Replace: "å"}
+  - ReplaceString: {Offset: 0x0048, Find: "è\0", Replace: "è"}
+  - ReplaceString: {Offset: 0x004C, Find: "é\0", Replace: "é"}
+  - ReplaceString: {Offset: 0x0050, Find: "ê\0", Replace: "ê"}
+  - ReplaceString: {Offset: 0x0054, Find: "ë\0", Replace: "ë"}
+  # Third row, left to right (10 keys):
+  - ReplaceString: {Offset: 0x005C, Find: "ò\0", Replace: "ò"}
+  - ReplaceString: {Offset: 0x0068, Find: "ó\0", Replace: "ó"}
+  - ReplaceString: {Offset: 0x0070, Find: "ô\0", Replace: "ô"}
+  - ReplaceString: {Offset: 0x0074, Find: "ö\0", Replace: "ö"}
+  - ReplaceString: {Offset: 0x0078, Find: "õ\0", Replace: "õ"}
+  - ReplaceString: {Offset: 0x007C, Find: "ø\0", Replace: "ø"}
+  - ReplaceString: {Offset: 0x0058, Find: "ì\0", Replace: "ì"}
+  - ReplaceString: {Offset: 0x0064, Find: "í\0", Replace: "í"}
+  - ReplaceString: {Offset: 0x0080, Find: "î\0", Replace: "î"}
+  - ReplaceString: {Offset: 0x0084, Find: "ï\0", Replace: "ï"}
+  # Fourth row, left to right (8 keys):
+  - ReplaceString: {Offset: 0x0060, Find: "ù\0", Replace: "ù"}
+  - ReplaceString: {Offset: 0x006C, Find: "ú\0", Replace: "ú"}
+  - ReplaceString: {Offset: 0x0088, Find: "û\0", Replace: "û"}
+  - ReplaceString: {Offset: 0x008C, Find: "ü\0", Replace: "ü"}
+  - ReplaceString: {Offset: 0x0090, Find: "ñ\0", Replace: "ñ"}
+  - ReplaceString: {Offset: 0x0094, Find: "ç\0", Replace: "ç"}
+  - ReplaceString: {Offset: 0x0098, Find: "đ\0", Replace: "đ"}
+  - ReplaceString: {Offset: 0x009C, Find: "ł\0", Replace: "ł"}
 
 
 # Multi-version patch: 4.4.9344 - 4.7.10413+ 

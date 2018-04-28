@@ -164,6 +164,7 @@ func main() {
 			Gname:      h.Gname,
 			PAXRecords: h.PAXRecords,
 			Size:       int64(len(fbuf)),
+			Format:     h.Format,
 		})
 		checkErr(err, "Could not write new header to patched KoboRoot.tgz")
 
@@ -179,16 +180,14 @@ func main() {
 	os.Remove(cfg.Out)
 
 	log("flushing output tar writer to buffer\n")
-	err = outtw.Flush()
-	checkErr(err, "Could not finish writing patched tar")
 	err = outtw.Close()
 	checkErr(err, "Could not finish writing patched tar")
+	time.Sleep(time.Millisecond * 500)
 
 	log("flushing output gzip writer to buffer\n")
-	err = outzw.Flush()
-	checkErr(err, "Could not finish writing compressed patched tar")
 	err = outzw.Close()
 	checkErr(err, "Could not finish writing compressed patched tar")
+	time.Sleep(time.Millisecond * 500)
 
 	log("writing buffer to output file\n")
 	err = ioutil.WriteFile(cfg.Out, outw.Bytes(), 0644)

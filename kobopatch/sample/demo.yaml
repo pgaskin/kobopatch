@@ -23,7 +23,8 @@ Demo Patch Name:
   - BaseAddress: 0x2A # Hex base address
   - BaseAddress: 42 # Int base address
   
-  - FindBaseAddress: "test\0test\t\n\v\f\e\x23dfgdfg" # Demonstration of the escape codes
+  - FindBaseAddressString: "testtest\t\n\v\f\e\x20dfgdfg" # Demonstration of the escape codes
+  - FindBaseAddressHex: "00 f3 cc 21" # Use FindBaseAddressHex if using only hex (the other one may cause issues due to the way go encodes strings)
   
   - ReplaceString:
     Offset: 0x0 # You can also use a number

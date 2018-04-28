@@ -3,7 +3,7 @@
 
 <Patch>
 patch_name = `Disable orphans/widows avoidance`
-patch_enable = `no`
+patch_enable = `yes`
 #
 ### Enable this patch to avoid blank lines at the bottom of pages in ePub books.
 #
@@ -27,7 +27,7 @@ replace_bytes = 295DDC, E6 D0, E6 E7
 
 <Patch>
 patch_name = `Default ePub monospace font (Courier)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 3.3.0 - 4.8.10956+
 #
 ## Kobo devices don't come with any monospace fonts. If the book's stylesheet
@@ -105,7 +105,7 @@ replace_string = 0000, `/bolditalic/KBJ-UDKakugo%20Pr6N%20M`, `/bolditalic/Aveni
 
 <Patch>
 patch_name = `Default ePub symbol font (Symbol)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 3.3.0 - 4.8.10956+
 #
 ## Sets the ePub default symbol font? Don't know what this does!
@@ -117,7 +117,7 @@ replace_string = 0000, `/SymbolStd.otf`, `/normal/Symbol`
 
 <Patch>
 patch_name = `Force user line spacing in ePubs (Part 2 of 2)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 3.3.0 - 4.8.10956+
 #
 ## This is part 2 of 2. Also enable part 1 in libnickel.so.1.0.0.patch
@@ -144,7 +144,7 @@ replace_string = 0001, `l`, `_`
 
 <Patch>
 patch_name = `Force user font-family in ePubs (Part 2 of 2)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 3.3.0 - 4.8.10956+
 #
 ## This is part 2 of 2. Also enable part 1 in libnickel.so.1.0.0.patch
@@ -171,7 +171,7 @@ replace_string = 0001, `f`, `_`
 
 <Patch>
 patch_name = `Ignore ePub book Adobe XPGT stylesheet (page-template.xpgt)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 3.3.0 - 4.8.10956+
 #
 ## Not all ePubs have an Adobe XPGT stylesheet, and the ones that do often use
@@ -198,7 +198,7 @@ replace_string = 0001, `t`, `_`
 
 <Patch>
 patch_name = `Ignore ePub book CSS and Adobe XPGT stylesheets`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 3.3.0 - 4.8.10956+
 find_base_address = `\0stylesheet\0`
 replace_string = 0001, `s`, `_`
@@ -209,7 +209,7 @@ replace_string = 0001, `s`, `_`
 
 <Patch>
 patch_name = `Ignore ePub TOC navpoints`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 3.3.0 - 4.8.10956+
 find_base_address = `\0navPoint\0`
 replace_string = 0001, `n`, `_`

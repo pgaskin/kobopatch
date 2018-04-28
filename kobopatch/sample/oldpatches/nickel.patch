@@ -39,7 +39,7 @@ Replace_string = 0000, `#caption[qApp_deviceIsTrilogy=true] {\n  font-size: 19px
 
 <Patch>
 patch_name = `Custom reading footer style`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.6.9960 - 4.8.10956+
 # patch_group = `Reading footer alternatives`
 #
@@ -126,7 +126,7 @@ replace_string = 0009, `line-height: 1.5em;`, `line-height: 1.3em;`
 
 <Patch>
 patch_name = `Custom synopsis/font size`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.4.9298 - 4.8.10956+
 #
 ## Increase synopsis font size
@@ -357,7 +357,7 @@ replace_bytes = 02C8, FC 03 F7 FE 5D 41 00 00, 5C 79 00 00 00 00 00 00
 
 <Patch>
 patch_name = `Dictionary pop-up frame size increase`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.6.9960 - 4.8.10956+
 #
 find_base_address = `\x7A\x58\xB2\xE5\x20\x8B\x00\x99\x19\xA4\x68\x8B`
@@ -515,7 +515,7 @@ replace_bytes = 0468, AA FF 03 06 95 4E AC 00, 00 00 00 00 00 00 00 00
 
 <Patch>
 patch_name = `Changing the info panel in full size screensaver (upper left corner)`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.6.9960 - 4.8.10956+
 # patch_group = `Custom screensaver info panel`
 #
@@ -1320,7 +1320,7 @@ replace_bytes = 0338, 07 C1 D1 51 7A 00, 00 00 00 00 00 00
 
 <Patch>
 patch_name = `Custom font to Collection and Authors names`
-patch_enable = `no`
+patch_enable = `yes`
 # Multi-version patch: 4.6.9960 - 4.8.10956+
 #
 ## See https://www.mobileread.com/forums/showpost.php?p=3520879&postcount=42

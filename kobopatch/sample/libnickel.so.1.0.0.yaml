@@ -128,7 +128,7 @@ Custom left & right margins:
   - Description: |
       This patch sets the size of the margins added by the margins adjustment
       slider, as a percentage of screen width.
-  - FindBaseAddress: "\0\0\0\0\x02\0\0\0\x04\0\0\0\x06\0\0\0\x08\0\0\0\x0A\0\0\0\x0C\0\0\0\x0E\0\0\0\x10\0\0\0"
+  - FindBaseAddressString: "\0\0\0\0\x02\0\0\0\x04\0\0\0\x06\0\0\0\x08\0\0\0\x0A\0\0\0\x0C\0\0\0\x0E\0\0\0\x10\0\0\0"
   # 9 values for replacement:
   - ReplaceInt: {Offset: 0x0000, Find: 0, Replace: 0}
   - ReplaceInt: {Offset: 0x0004, Find: 2, Replace: 1}
@@ -259,7 +259,7 @@ ePub fixed/adjustable top/bottom margins:
   #
   #      padding-bottom: %1em !important;\n
   # --> }@page{margin:%1px 00px %1px}body{
-  - FindBaseAddress: "\x20padding-bottom: %1em !important;\n"
+  - FindBaseAddressString: "\x20padding-bottom: %1em !important;\n"
   - ReplaceString: {Offset: 0x0, Find: "\x20padding-bottom: %1em !important;\n", Replace: "}@page{margin:%1px 00px %1px}body{"}
   #
   # *** Replacement values start here, don't change anything above ***
@@ -308,7 +308,7 @@ ePub fixed top/bottom margins:
   #
   #      padding-bottom: %1em !important;\n
   # --> }@page{margin:00px 00px 00px}body{
-  - FindBaseAddress: "\x20padding-bottom: %1em !important;\n"
+  - FindBaseAddressString: "\x20padding-bottom: %1em !important;\n"
   - ReplaceString: 
       Offset: 0x0000
       Find: "\x20padding-bottom: %1em !important;\n"
@@ -341,7 +341,7 @@ ePub disable built-in body padding-bottom:
   #
   #      padding-bottom: %1em !important;\n
   # -->  _adding-bottom: %1em !important;\n
-  - FindBaseAddress: "\x20padding-bottom: %1em"
+  - FindBaseAddressString: "\x20padding-bottom: %1em"
   - ReplaceString: {Offset: 0x0001, Find: "p", Replace: "_"}
 
 
@@ -381,7 +381,7 @@ Block WiFi firmware upgrade:
       REMOVE THIS PATCH BEFORE USING EITHER OF THOSE OPTIONS.
       A factory reset invoked using the hardware methods (such as holding down the
       light button while switching on) should not be affected.
-  - FindBaseAddress: "UpgradeCheck/%1/%2/%3/%4/%5"
+  - FindBaseAddressString: "UpgradeCheck/%1/%2/%3/%4/%5"
   - ReplaceString: {Offset: 0x0013, Find: "%3/%4/%5", Replace: "k/99.9/5"}
 
 
@@ -391,7 +391,7 @@ Custom footer (page number text):
   - Description: |
       Shortens the page number text in the reading footer, and perhaps elsewhere.
       E.g. "Page 1 of 2" becomes "1 / 2" (not sure how it affects translations)
-  - FindBaseAddress: "Page %1 <i>of</i> %2"
+  - FindBaseAddressString: "Page %1 <i>of</i> %2"
   - ReplaceString: {Offset: 0x0000, Find: "Page %1 <i>of</i> %2", Replace: "%1 / %2"}
 
 
@@ -479,7 +479,7 @@ Fix three KePub fullScreenReading bugs:
 #       padding-left: 0.2em !important;
 #       padding-right: 0.2em !important;
 #     }
-  - FindBaseAddress: "img { display: block; margin-left: auto !important;"
+  - FindBaseAddressString: "img { display: block; margin-left: auto !important;"
   - ReplaceString: 
       Offset: 0x0000
       Find:    "img { display: block; margin-left: auto !important; margin-right: auto !important; width: auto !important; height: auto !important; }"
@@ -531,7 +531,7 @@ Force user line spacing in KePubs:
   #
   # body, p { line-height: %1 ... }  -->  body *  { line-height: %1 ... }
   #
-  - FindBaseAddress: "body, p { line-height: %1"
+  - FindBaseAddressString: "body, p { line-height: %1"
   - ReplaceString: {Offset: 0x0000, Find: "body, p {", Replace: "body *  {"}
   # Option: Comment out the replace_string line above and uncomment the one below
   # for a less forceful version of this patch that has fewer side effects and
@@ -551,7 +551,7 @@ Force user line spacing in ePubs (part 1 of 2):
       This patch prevents any line-height style set in the book's stylesheet from
       being recognised. It will spoil the formatting of some books, but will
       ensure that the line spacing set with the adjustment slider takes effect.
-  - FindBaseAddress: "\0\0\x20line-height: %1"
+  - FindBaseAddressString: "\0\0\x20line-height: %1"
   - ReplaceString: {Offset: 0x0003, Find: "l", Replace: "_"}
 
 
@@ -565,7 +565,7 @@ Un-force font-family override p tags (std epubs):
   #
   #     body, p { font-family: -ua-default !important; }
   # --> body    { font-family: -ua-default !important; }
-  - FindBaseAddress: "body, p { font-family: -ua"
+  - FindBaseAddressString: "body, p { font-family: -ua"
   - ReplaceString: {Offset: 0x0, Find: "body, p", Replace: "body  \x20"}
 
 
@@ -578,15 +578,15 @@ Force user font-family in ePubs (Part 1 of 2):
       This patch prevents any font-family style set in the book's stylesheet from
       being recognised. It might spoil the style of books which use multiple fonts,
       but will ensure that the font-family set from the device menu takes effect.
-  - FindBaseAddress: "font-family: -ua-default; font-style: normal; font-weight: normal;"
+  - FindBaseAddressString: "font-family: -ua-default; font-style: normal; font-weight: normal;"
   - ReplaceString: {Offset: 0x0000, Find: "f", Replace: "_"}
-  - FindBaseAddress: "font-family: -ua-default; font-style: italic; font-weight: normal;"
+  - FindBaseAddressString: "font-family: -ua-default; font-style: italic; font-weight: normal;"
   - ReplaceString: {Offset: 0x0000, Find: "f", Replace: "_"}
-  - FindBaseAddress: "font-family: -ua-default; font-style: italic; font-weight: bold;"
+  - FindBaseAddressString: "font-family: -ua-default; font-style: italic; font-weight: bold;"
   - ReplaceString: {Offset: 0x0000, Find: "f", Replace: "_"}
-  - FindBaseAddress: "font-family: -ua-default; font-style: normal; font-weight: bold;"
+  - FindBaseAddressString: "font-family: -ua-default; font-style: normal; font-weight: bold;"
   - ReplaceString: {Offset: 0x0000, Find: "f", Replace: "_"}
-  - FindBaseAddress: "font-family: -ua-default !important;"
+  - FindBaseAddressString: "font-family: -ua-default !important;"
   - ReplaceString: {Offset: 0x0000, Find: "f", Replace: "_"}
 
 
@@ -598,7 +598,7 @@ ePub constant font sharpness:
       instead of the value set by the advanced font sharpness/weight slider. The
       slider sharpness values range from -0.4(min.) to 0.2(max.), default -0.0666.
   # -kobo-font-sharpness: %1; --> -kobo-font-sharpness:0.2;
-  - FindBaseAddress: "\0\0 -kobo-font-sharpness: %1;"
+  - FindBaseAddressString: "\0\0 -kobo-font-sharpness: %1;"
   # Replacement sharpness value:
   - ReplaceString: {Offset: 0x0003, Find: "-kobo-font-sharpness: %1", Replace: "-kobo-font-sharpness:0.2"}
 
@@ -612,7 +612,7 @@ KePub constant font sharpness:
       slider sharpness values range from -0.4(min.) to 0.2(max.), default -0.0666.
   #     body { -kobo-font-sharpness: %1; -kobo-font-thickness: %2; }\n
   # --> body{-kobo-font-sharpness:0.0/*%1*/;-kobo-font-thickness:%2}\n
-  - FindBaseAddress: "body { -kobo-font-sharpness"
+  - FindBaseAddressString: "body { -kobo-font-sharpness"
   - ReplaceString: {Offset: 0x0000, Find: "body { -kobo-font-sharpness: %1; -kobo-font-thickness: %2; }\n", Replace: "body{-kobo-font-sharpness:0.0/*%1*/;-kobo-font-thickness:%2}\n"}
   # Replacement sharpness value:
   - ReplaceString: {Offset: 0x005, Find: "-kobo-font-sharpness:0.0", Replace: "-kobo-font-sharpness:0.2"}
@@ -626,7 +626,7 @@ Un-Force user text-align in div,p tags in KePubs:
       stylesheet to override the alignment selected by the reader from the device.
   #     div, p { text-align: %1 !important; }
   # --> body   { text-align: %1 !important; }
-  - FindBaseAddress: "div, p { text-align: %1"
+  - FindBaseAddressString: "div, p { text-align: %1"
   - ReplaceString: {Offset: 0x0000, Find: "div, p {", Replace: "body   {"}
 
 
@@ -654,7 +654,7 @@ Un-Force user font-family in KePubs:
       override the font-family selected by the reader from the device in some
       cases, which allows a mix of user-selected and publisher-selected fonts.
       Alternatives 1-3 give increasing preference to the publisher-selected fonts.
-  - FindBaseAddress: "* { font-family: %1 !important; }\n"
+  - FindBaseAddressString: "* { font-family: %1 !important; }\n"
   #
   # Alternatve 1:
   #
@@ -688,7 +688,7 @@ Un-force link decoration in KePubs:
         border-bottom: 1px dotted black !important;
         color: #696969 !important;
       }"
-  - FindBaseAddress: "a:link, a:visited, a:hover, a:active {"
+  - FindBaseAddressString: "a:link, a:visited, a:hover, a:active {"
   # Disable border-bottom style:
   - ReplaceString: {Offset: 0x0027, Find: "b", Replace: "_"}
   # Disable color style:
@@ -701,7 +701,7 @@ KePub stylesheet additions:
   - Description: |
       Makes room to add some additional CSS to the default KePub stylesheet.
   # See replacement CSS below for examples.
-  - FindBaseAddress: ".KBHighlighting, .KBSearchResult {"
+  - FindBaseAddressString: ".KBHighlighting, .KBSearchResult {"
   - ReplaceString: {Offset: 0x0000, Find: ".KBHighlighting, .KBSearchResult { background-color: #C6C6C6 !important; } \t", Replace: ".KBHighlighting,.KBSearchResult{background-color:#C6C6C6!important}.KBSearch"}
   - ReplaceString: {Offset: 0x004C, Find: ".KBSearchResult, .KBAnnotation, .KBHighlighting { font-size: 100% !important; -webkit-text-combine: inherit !important; } \t", Replace: "Result,.KBAnnotation,.KBHighlighting{font-size:100%!important;-webkit-text-combine:inherit!important}.KBAnnotation[writingM"}
   - ReplaceString: {Offset: 0x00C7, Find: ".KBAnnotation[writingMode=\"horizontal-tb\"], .KBAnnotationContinued[writingMode=\"horizontal-tb\"] { border-bottom: 2px solid black !important; } \t", Replace: "ode=\"horizontal-tb\"],.KBAnnotationContinued[writingMode=\"horizontal-tb\"]{border-bottom:2px solid black!important}.KBAnnotation[writingMode=\"vert"}
@@ -744,7 +744,7 @@ Allow searches on Extra dictionaries:
       "Extra: " to another char (ex: "Extra:_")
       The space char causes a non-desired "English - English" when searching on
       Extra dictionary from main menu.
-  - FindBaseAddress: "\0Extra:\x20"
+  - FindBaseAddressString: "\0Extra:\x20"
   - ReplaceString: {Offset: 0x0007, Find: "\x20", Replace: "_"}
 
 
@@ -755,7 +755,7 @@ Ignore .otf fonts:
       Ignores all sideloaded and pre-installed .otf fonts.
       (Currently the only pre-installed .otf font is OpenDyslexic.)
       Embedded .otf fonts should continue to work as normal.
-  - FindBaseAddress: "*.otf"
+  - FindBaseAddressString: "*.otf"
   - ReplaceString: {Offset: 0x000, Find: "*", Replace: "_"}
 
 
@@ -791,7 +791,7 @@ Dictionary text font-family/font-size/line-height - beta:
   #       ol p { font-size:  1em; font-weight:normal; }
   #
   # ##### N.B. Do not change the next 2 lines #####
-  - FindBaseAddress: "* { font: %1px %2; line-height: %5em; }"
+  - FindBaseAddressString: "* { font: %1px %2; line-height: %5em; }"
   - ReplaceString: 
       Offset: 0
       Find: "* { font: %1px %2; line-height: %5em; }\ndiv.descriptionFont { font-family: %3; }\nol { font-size: %1px; font-weight: bold; margin-left: %4em; margin-top: 0px; }\nol p { font-size: %1px; font-weight:normal; }\n"

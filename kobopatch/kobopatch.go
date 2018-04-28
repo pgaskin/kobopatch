@@ -224,12 +224,13 @@ func checkErr(err error, msg string) {
 type patchFile map[string]patch
 type patch []instruction
 type instruction struct {
-	Enabled           *bool   `yaml:"Enabled,omitempty"`
-	Description       *string `yaml:"Description,omitempty"`
-	PatchGroup        *string `yaml:"PatchGroup,omitempty"`
-	BaseAddress       *int32  `yaml:"BaseAddress,omitempty"`
-	FindBaseAddress   *string `yaml:"FindBaseAddress,omitempty"`
-	FindReplaceString *struct {
+	Enabled               *bool   `yaml:"Enabled,omitempty"`
+	Description           *string `yaml:"Description,omitempty"`
+	PatchGroup            *string `yaml:"PatchGroup,omitempty"`
+	BaseAddress           *int32  `yaml:"BaseAddress,omitempty"`
+	FindBaseAddressHex    *string `yaml:"FindBaseAddressHex,omitempty"`
+	FindBaseAddressString *string `yaml:"FindBaseAddressString,omitempty"`
+	FindReplaceString     *struct {
 		Find    string `yaml:"Find,omitempty"`
 		Replace string `yaml:"Replace,omitempty"`
 	} `yaml:"FindReplaceString,omitempty"`
@@ -359,9 +360,18 @@ func (pf *patchFile) ApplyTo(pt *patchlib.Patcher) error {
 			case i.BaseAddress != nil:
 				log("          BaseAddress(%#v)\n", *i.BaseAddress)
 				err = pt.BaseAddress(*i.BaseAddress)
-			case i.FindBaseAddress != nil:
-				log("          FindBaseAddressString(%#v)\n", *i.FindBaseAddress)
-				err = pt.FindBaseAddressString(*i.FindBaseAddress)
+			case i.FindBaseAddressHex != nil:
+				log("          FindBaseAddressHex(%#v)\n", *i.FindBaseAddressHex)
+				buf := []byte{}
+				_, err = fmt.Sscanf(strings.Replace(*i.FindBaseAddressHex, " ", "", -1), "%x\n", &buf)
+				if err != nil {
+					err = fmt.Errorf("FindBaseAddresHex: invalid hex string")
+					break
+				}
+				err = pt.FindBaseAddress(buf)
+			case i.FindBaseAddressString != nil:
+				log("          FindBaseAddressString(%#v) | hex:%x\n", *i.FindBaseAddressString, []byte(*i.FindBaseAddressString))
+				err = pt.FindBaseAddressString(*i.FindBaseAddressString)
 			case i.ReplaceBytes != nil:
 				r := *i.ReplaceBytes
 				log("          ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
@@ -416,6 +426,11 @@ func (pf *patchFile) validate() error {
 		pgc := 0
 		pg := ""
 		dc := 0
+
+		rbc := 0
+		roc := 0
+		fbsc := 0
+
 		for _, i := range p {
 			ic := 0
 			if i.Enabled != nil {
@@ -435,23 +450,32 @@ func (pf *patchFile) validate() error {
 			if i.BaseAddress != nil {
 				ic++
 			}
-			if i.FindBaseAddress != nil {
+			if i.FindBaseAddressString != nil {
+				ic++
+				fbsc++
+			}
+			if i.FindBaseAddressHex != nil {
 				ic++
 			}
 			if i.ReplaceBytes != nil {
 				ic++
+				rbc++
 			}
 			if i.ReplaceFloat != nil {
 				ic++
+				roc++
 			}
 			if i.ReplaceInt != nil {
 				ic++
+				roc++
 			}
 			if i.ReplaceString != nil {
 				ic++
+				roc++
 			}
 			if i.FindReplaceString != nil {
 				ic++
+				roc++
 			}
 			log("          ic:%d\n", ic)
 			if ic < 1 {
@@ -461,7 +485,7 @@ func (pf *patchFile) validate() error {
 				return fmt.Errorf("more than one instruction per bullet in patch `%s` (you might be missing a -)", n)
 			}
 		}
-		log("          ec:%d, e:%t, pgc:%d, pg:%s, dc:%d\n", ec, e, pgc, pg, dc)
+		log("          ec:%d, e:%t, pgc:%d, pg:%s, dc:%d, rbc:%d, roc: %d, fbsc:%d\n", ec, e, pgc, pg, dc, rbc, roc, fbsc)
 		if ec < 1 {
 			return fmt.Errorf("no `Enabled` option in `%s`", n)
 		} else if ec > 1 {
@@ -478,6 +502,9 @@ func (pf *patchFile) validate() error {
 				return fmt.Errorf("more than one patch enabled in PatchGroup `%s`", pg)
 			}
 			enabledPatchGroups[pg] = true
+		}
+		if roc == 0 && rbc > 0 && fbsc > 0 {
+			return fmt.Errorf("use FindBaseAddressHex for hex replacements because FindBaseAddressString will lose control characters (patch `%s`)", n)
 		}
 	}
 	log("          enabledPatchGroups:%v\n", enabledPatchGroups)

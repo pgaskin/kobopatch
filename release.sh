@@ -54,7 +54,7 @@ if [[ "$SKIP_UPLOAD" != "true" ]]; then
         --name "kobopatch $APP_VERSION" \
         --description "$(cat build/release-notes.md)"
 
-    for f in build/kobopatch*;do 
+    for f in build/kobop*;do 
         fn="$(basename $f)"
         echo "Uploading $fn"
         GITHUB_TOKEN=$GITHUB_TOKEN github-release upload \

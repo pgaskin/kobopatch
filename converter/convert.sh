@@ -25,7 +25,7 @@ for pf in src/*.zip; do
     for ps in tmp/$bn/*_source/*.patch; do
         cat "$ps" | sed 's/# patch_group/patch_group/g' > "tmp/$kbn/src/$(basename "$ps")"
     done
-    cp ../build/kobopatch* "tmp/$kbn/bin/"
+    cp ../build/kobop* "tmp/$kbn/bin/"
     echo "https://geek1011.github.io/KoboStuff/kobofirmware.html" > "tmp/$kbn/src/download_firmware_here.txt"
     cat <<EOF > "tmp/$kbn/kobopatch.yaml"
 ## Works with kobopatch v0.6 or higher.
@@ -94,7 +94,7 @@ EOF
 @echo off
 cd "%~dp0"
 erase "KoboRoot.tgz" >nul 2>&1
-"./bin/kobopatch-windows.exe"
+"./bin/koboptch-windows.exe"
 EOF
     unix2dos "tmp/$kbn/kobopatch.bat"
     cat <<EOF > "tmp/$kbn/readme.txt"

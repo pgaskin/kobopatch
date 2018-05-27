@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")"
 
 cd ..
-make clean cross
+make cross
 cd "$(dirname "$0")"
 
 rm -rf out tmp
@@ -93,8 +93,9 @@ EOF
 @echo off
 cd "%~dp0"
 erase "KoboRoot.tgz" >nul 2>&1
-bin/kobopatch-windows.exe
+./bin/kobopatch-windows.exe
 EOF
+    unix2dos "tmp/$kbn/kobopatch.bat"
     cat <<EOF > "tmp/$kbn/readme.txt"
 This is for use with firmware $ver.
 
@@ -117,6 +118,7 @@ This is for use with firmware $ver.
 Open an issue on https://github.com/geek1011/kobopatch/issues, or respond to the thread on MobileRead.
 Make sure you provide log.txt
 EOF
+    unix2dos "tmp/$kbn/readme.txt"
     cd tmp
     zip -r "../out/$kbn.zip" "$kbn"
     cd ..

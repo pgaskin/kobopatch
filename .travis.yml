@@ -10,6 +10,11 @@ script:
  - make test
  - make build
 
+addons:
+  apt:
+    packages:
+      - dos2unix
+
 deploy:
   provider: script
   script: /bin/bash $TRAVIS_BUILD_DIR/release.sh

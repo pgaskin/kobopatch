@@ -61,12 +61,12 @@ func (p *Patcher) FindBaseAddressString(find string) error {
 	return p.FindBaseAddress([]byte(find))
 }
 
-// ReplaceBytes replaces the first occurence of a sequence of bytes with another of the same length.
+// ReplaceBytes replaces the first occurrence of a sequence of bytes with another of the same length.
 func (p *Patcher) ReplaceBytes(offset int32, find, replace []byte) error {
 	return wrapErrIfNotNil("ReplaceBytes", p.replaceValue(offset, find, replace))
 }
 
-// ReplaceString replaces the first occurence of a string with another of the same length.
+// ReplaceString replaces the first occurrence of a string with another of the same length.
 func (p *Patcher) ReplaceString(offset int32, find, replace string) error {
 	if len(replace) < len(find) {
 		// If replacement shorter than find, append a null to the replacement string to be consistent with the original patch32lsb.
@@ -76,18 +76,18 @@ func (p *Patcher) ReplaceString(offset int32, find, replace string) error {
 	return wrapErrIfNotNil("ReplaceString", p.replaceValue(offset, find, replace))
 }
 
-// ReplaceInt replaces the first occurence of an integer between 0 and 255 inclusively.
+// ReplaceInt replaces the first occurrence of an integer between 0 and 255 inclusively.
 func (p *Patcher) ReplaceInt(offset int32, find, replace uint8) error {
 	return wrapErrIfNotNil("ReplaceInt", p.replaceValue(offset, find, replace))
 }
 
-// ReplaceFloat replaces the first occurence of a float.
+// ReplaceFloat replaces the first occurrence of a float.
 func (p *Patcher) ReplaceFloat(offset int32, find, replace float64) error {
 	return wrapErrIfNotNil("ReplaceFloat", p.replaceValue(offset, find, replace))
 }
 
 // replaceValue encodes find and replace as little-endian binary and replaces the first
-// occurence starting at cur. The lengths of the encoded find and replace must be the
+// occurrence starting at cur. The lengths of the encoded find and replace must be the
 // same, or an error will be returned.
 func (p *Patcher) replaceValue(offset int32, find, replace interface{}) error {
 	if int32(len(p.buf)) < p.cur+offset {

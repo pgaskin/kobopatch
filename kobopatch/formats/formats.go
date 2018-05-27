@@ -16,6 +16,8 @@ type PatchSet interface {
 	Validate() error
 	// ApplyTo applies a PatchSet to a Patcher.
 	ApplyTo(*patchlib.Patcher) error
+	// SetEnabled sets the Enabled state of a Patch in a PatchSet.
+	SetEnabled(string, bool) error
 }
 
 var formats = map[string]func([]byte) (PatchSet, error){}

@@ -5,13 +5,14 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/geek1011/kobopatch/kobopatch/formats"
 	_ "github.com/geek1011/kobopatch/kobopatch/formats/kobopatch"
@@ -23,18 +24,21 @@ import (
 var version = "unknown"
 
 type config struct {
-	Version     string            `yaml:"version" json:"version"`
-	In          string            `yaml:"in" json:"in"`
-	Out         string            `yaml:"out" json:"out"`
-	Log         string            `yaml:"log" json:"log"`
-	PatchFormat string            `yaml:"patchFormat" json:"patchFormat"`
-	Patches     map[string]string `yaml:"patches" json:"patches"`
+	Version     string                     `yaml:"version" json:"version"`
+	In          string                     `yaml:"in" json:"in"`
+	Out         string                     `yaml:"out" json:"out"`
+	Log         string                     `yaml:"log" json:"log"`
+	PatchFormat string                     `yaml:"patchFormat" json:"patchFormat"`
+	Patches     map[string]string          `yaml:"patches" json:"patches"`
+	Overrides   map[string]map[string]bool `yaml:"overrides" json:"overrides"`
 }
 
 var log = func(format string, a ...interface{}) {}
 
 func main() {
 	fmt.Printf("kobopatch %s\n\n", version)
+
+	fmt.Printf("Reading config file (kobopatch.yaml)\n")
 
 	cfgbuf, err := ioutil.ReadFile("./kobopatch.yaml")
 	checkErr(err, "Could not read kobopatch.yaml")
@@ -63,8 +67,12 @@ func main() {
 		fmt.Fprintf(logf, "        "+format, a...)
 	}
 
+	log("config: %#v\n", cfg)
+
 	d, _ := os.Getwd()
 	log("kobopatch %s\n\ndir:%s\ncfg: %#v\n\n", version, d, cfg)
+
+	fmt.Printf("Opening input file\n")
 
 	log("opening zip\n")
 	zipr, err := zip.OpenReader(cfg.In)
@@ -105,6 +113,8 @@ func main() {
 	log("creating new tar writer for output buffer\n")
 	outtw := tar.NewWriter(outzw)
 	defer outtw.Close()
+
+	var expectedSizeSum int64
 
 	log("looping over files from source tgz\n")
 	for {
@@ -151,6 +161,19 @@ func main() {
 		ps, err := formats.ReadFromFile(cfg.PatchFormat, pfn)
 		checkErr(err, "Could not read and parse patch file "+pfn)
 
+		for ofn, o := range cfg.Overrides {
+			if ofn != pfn || o == nil || len(o) < 1 {
+				continue
+			}
+			fmt.Printf("  Applying overrides from config\n")
+			for on, os := range o {
+				log("    override: %s -> %t\n", on, os)
+				fmt.Printf("    '%s' -> enabled:%t\n", on, os)
+				err := ps.SetEnabled(on, os)
+				checkErr(err, "Could not override patch '"+on+"'")
+			}
+		}
+
 		log("    validating patch file\n")
 		err = ps.Validate()
 		checkErr(err, "Invalid patch file "+pfn)
@@ -160,6 +183,8 @@ func main() {
 		checkErr(err, "Could not apply patch file "+pfn)
 
 		fbuf = pt.GetBytes()
+
+		expectedSizeSum += h.Size
 
 		log("    copying new header to output tar - size:%d, mode:%v\n", len(fbuf), h.Mode)
 		// Preserve attributes (VERY IMPORTANT)
@@ -186,6 +211,8 @@ func main() {
 		}
 	}
 
+	fmt.Printf("Writing patched KoboRoot.tgz\n")
+
 	log("removing old output tgz: %s\n", cfg.Out)
 	os.Remove(cfg.Out)
 
@@ -203,7 +230,41 @@ func main() {
 	err = ioutil.WriteFile(cfg.Out, outw.Bytes(), 0644)
 	checkErr(err, "Could not write patched KoboRoot.tgz")
 
-	// TODO: reread tgz and compare file size for checking consistency
+	fmt.Printf("Checking patched KoboRoot.tgz for consistency\n")
+	log("checking consistency\n")
+
+	log("opening out as read-only\n")
+	checkr, err := os.Open(cfg.Out)
+	checkErr(err, "Could not open patched tgz")
+	defer checkr.Close()
+
+	log("creating gzip reader\n")
+	checkzr, err := gzip.NewReader(checkr)
+	checkErr(err, "Could not open patched tgz")
+	defer checkzr.Close()
+
+	log("creating tar reader\n")
+	checktr := tar.NewReader(checkzr)
+	checkErr(err, "Could not open patched tgz")
+
+	var sizeSum int64
+	for {
+		h, err := checktr.Next()
+		if err == io.EOF {
+			break
+		}
+		log("  reading entry: %s: %d\n", h.Name, h.Size)
+		for _, f := range cfg.Patches {
+			if h.Name == "./"+f || h.Name == f {
+				sizeSum += h.Size
+				log("  matched, added %d to sum, sum:%s\n", h.Size, sizeSum)
+				break
+			}
+		}
+	}
+	if expectedSizeSum != sizeSum {
+		checkErr(errors.Errorf("size mismatch: expected %d, got %d. (please report this as a bug)", expectedSizeSum, sizeSum), "Error checking patched KoboRoot.tgz for consistency")
+	}
 
 	log("patch success\n")
 	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s\n", cfg.Out)

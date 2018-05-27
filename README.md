@@ -13,6 +13,8 @@ An improved alternative to patch32lsb. WIP.
 - [ ] Automatic builds
 - [X] Alternative patch format (which has more reliable and has less complex parsing)
 - [X] Manually check hashes of output from both batch formats with each other and the old patcher with all patches enabled to ensure reliability
+- [X] Patch overrides to force enable/disable patches in a portable way.
+- [X] Patch consistency check
 
 **Improvements/Goals:**
 - More readable code

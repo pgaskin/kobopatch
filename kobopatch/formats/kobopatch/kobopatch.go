@@ -292,6 +292,23 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 	return nil
 }
 
+// SetEnabled sets the Enabled state of a Patch in a PatchSet.
+func (ps *PatchSet) SetEnabled(patch string, enabled bool) error {
+	for n, p := range *ps {
+		if n != patch {
+			continue
+		}
+		for _, i := range p {
+			if i.Enabled != nil {
+				i.Enabled = &enabled
+				return nil
+			}
+		}
+		return errors.Errorf("could not set enabled state of '%s' to %t: no Enabled instruction in patch", patch, enabled)
+	}
+	return errors.Errorf("could not set enabled state of '%s' to %t: no such patch", patch, enabled)
+}
+
 func init() {
 	formats.RegisterFormat("kobopatch", Parse)
 }

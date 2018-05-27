@@ -1,3 +1,4 @@
+// Command kobopatch is an all-in-one tool to apply patches to a kobo update zip.
 package main
 
 import (
@@ -14,9 +15,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/geek1011/kobopatch/kobopatch/formats"
-	_ "github.com/geek1011/kobopatch/kobopatch/formats/kobopatch"
-	_ "github.com/geek1011/kobopatch/kobopatch/formats/patch32lsb"
+	"github.com/geek1011/kobopatch/patchfile"
+	_ "github.com/geek1011/kobopatch/patchfile/kobopatch"
+	_ "github.com/geek1011/kobopatch/patchfile/patch32lsb"
 	"github.com/geek1011/kobopatch/patchlib"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -51,7 +52,7 @@ func main() {
 		checkErr(errors.New("version, in, out, and log are required"), "Could not parse kobopatch.yaml")
 	}
 
-	_, ok := formats.GetFormat(cfg.PatchFormat)
+	_, ok := patchfile.GetFormat(cfg.PatchFormat)
 	if !ok {
 		checkErr(errors.New("invalid patch format"), "Error")
 	}
@@ -63,7 +64,7 @@ func main() {
 	log = func(format string, a ...interface{}) {
 		fmt.Fprintf(logf, format, a...)
 	}
-	formats.Log = func(format string, a ...interface{}) {
+	patchfile.Log = func(format string, a ...interface{}) {
 		fmt.Fprintf(logf, "        "+format, a...)
 	}
 
@@ -158,7 +159,7 @@ func main() {
 		pt := patchlib.NewPatcher(fbuf)
 
 		log("    loading patch file: %s\n", pfn)
-		ps, err := formats.ReadFromFile(cfg.PatchFormat, pfn)
+		ps, err := patchfile.ReadFromFile(cfg.PatchFormat, pfn)
 		checkErr(err, "Could not read and parse patch file "+pfn)
 
 		for ofn, o := range cfg.Overrides {

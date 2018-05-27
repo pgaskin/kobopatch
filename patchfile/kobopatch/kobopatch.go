@@ -1,10 +1,11 @@
+// Package kobopatch reads kobopatch style patches.
 package kobopatch
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/geek1011/kobopatch/kobopatch/formats"
+	"github.com/geek1011/kobopatch/patchfile"
 	"github.com/geek1011/kobopatch/patchlib"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
@@ -50,14 +51,14 @@ type instruction struct {
 }
 
 // Parse parses a PatchSet from a buf.
-func Parse(buf []byte) (formats.PatchSet, error) {
-	formats.Log("parsing patch file\n")
+func Parse(buf []byte) (patchfile.PatchSet, error) {
+	patchfile.Log("parsing patch file\n")
 	ps := &PatchSet{}
 	if err := yaml.UnmarshalStrict(buf, &ps); err != nil {
 		return nil, errors.Wrap(err, "error parsing patch file")
 	}
 
-	formats.Log("parsing patch file: expanding shorthand hex values\n")
+	patchfile.Log("parsing patch file: expanding shorthand hex values\n")
 	for n := range *ps {
 		for i := range (*ps)[n] {
 			if (*ps)[n][i].ReplaceBytes != nil {
@@ -69,10 +70,10 @@ func Parse(buf []byte) (formats.PatchSet, error) {
 						&((*ps)[n][i].ReplaceBytes).Find,
 					)
 					if err != nil {
-						formats.Log("  error decoding hex `%s`: %v\n", hex, err)
+						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
 						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
 					}
-					formats.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytes).Find)
+					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytes).Find)
 				}
 				if ((*ps)[n][i].ReplaceBytes).ReplaceH != nil {
 					hex := *((*ps)[n][i].ReplaceBytes).ReplaceH
@@ -82,10 +83,10 @@ func Parse(buf []byte) (formats.PatchSet, error) {
 						&((*ps)[n][i].ReplaceBytes).Replace,
 					)
 					if err != nil {
-						formats.Log("  error decoding hex `%s`: %v\n", hex, err)
+						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
 						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
 					}
-					formats.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytes).Replace)
+					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytes).Replace)
 				}
 			}
 		}
@@ -154,7 +155,7 @@ func (ps *PatchSet) Validate() error {
 				ic++
 				roc++
 			}
-			formats.Log("  ic:%d\n", ic)
+			patchfile.Log("  ic:%d\n", ic)
 			if ic < 1 {
 				return errors.Errorf("internal error while validating `%s` (you should report this as a bug)", n)
 			}
@@ -162,7 +163,7 @@ func (ps *PatchSet) Validate() error {
 				return errors.Errorf("more than one instruction per bullet in patch `%s` (you might be missing a -)", n)
 			}
 		}
-		formats.Log("  ec:%d, e:%t, pgc:%d, pg:%s, dc:%d, rbc:%d, roc: %d, fbsc:%d\n", ec, e, pgc, pg, dc, rbc, roc, fbsc)
+		patchfile.Log("  ec:%d, e:%t, pgc:%d, pg:%s, dc:%d, rbc:%d, roc: %d, fbsc:%d\n", ec, e, pgc, pg, dc, rbc, roc, fbsc)
 		if ec < 1 {
 			return errors.Errorf("no `Enabled` option in `%s`", n)
 		} else if ec > 1 {
@@ -184,13 +185,13 @@ func (ps *PatchSet) Validate() error {
 			return errors.Errorf("use FindBaseAddressHex for hex replacements because FindBaseAddressString will lose control characters (patch `%s`)", n)
 		}
 	}
-	formats.Log("  enabledPatchGroups:%v\n", enabledPatchGroups)
+	patchfile.Log("  enabledPatchGroups:%v\n", enabledPatchGroups)
 	return nil
 }
 
 // ApplyTo applies a PatchSet to a Patcher.
 func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
-	formats.Log("validating patch file\n")
+	patchfile.Log("validating patch file\n")
 	err := ps.Validate()
 	if err != nil {
 		err = errors.Wrap(err, "invalid patch file")
@@ -198,12 +199,12 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 		return err
 	}
 
-	formats.Log("looping over patches\n")
+	patchfile.Log("looping over patches\n")
 	num, total := 0, len(*ps)
 	for n, p := range *ps {
 		var err error
 		num++
-		formats.Log("  ResetBaseAddress()\n")
+		patchfile.Log("  ResetBaseAddress()\n")
 		pt.ResetBaseAddress()
 
 		enabled := false
@@ -213,29 +214,29 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				break
 			}
 		}
-		formats.Log("  Enabled: %t\n", enabled)
+		patchfile.Log("  Enabled: %t\n", enabled)
 
 		if !enabled {
-			formats.Log("  skipping patch `%s`\n", n)
+			patchfile.Log("  skipping patch `%s`\n", n)
 			fmt.Printf("  [%d/%d] Skipping disabled patch `%s`\n", num, total, n)
 			continue
 		}
 
-		formats.Log("  applying patch `%s`\n", n)
+		patchfile.Log("  applying patch `%s`\n", n)
 		fmt.Printf("  [%d/%d] Applying patch `%s`\n", num, total, n)
 
-		formats.Log("looping over instructions\n")
+		patchfile.Log("looping over instructions\n")
 		for _, i := range p {
 			switch {
 			case i.Enabled != nil || i.PatchGroup != nil || i.Description != nil:
-				formats.Log("  skipping non-instruction Enabled(), PatchGroup() or Description()\n")
+				patchfile.Log("  skipping non-instruction Enabled(), PatchGroup() or Description()\n")
 				// Skip non-instructions
 				err = nil
 			case i.BaseAddress != nil:
-				formats.Log("  BaseAddress(%#v)\n", *i.BaseAddress)
+				patchfile.Log("  BaseAddress(%#v)\n", *i.BaseAddress)
 				err = pt.BaseAddress(*i.BaseAddress)
 			case i.FindBaseAddressHex != nil:
-				formats.Log("  FindBaseAddressHex(%#v)\n", *i.FindBaseAddressHex)
+				patchfile.Log("  FindBaseAddressHex(%#v)\n", *i.FindBaseAddressHex)
 				buf := []byte{}
 				_, err = fmt.Sscanf(strings.Replace(*i.FindBaseAddressHex, " ", "", -1), "%x\n", &buf)
 				if err != nil {
@@ -244,46 +245,46 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				}
 				err = pt.FindBaseAddress(buf)
 			case i.FindBaseAddressString != nil:
-				formats.Log("  FindBaseAddressString(%#v) | hex:%x\n", *i.FindBaseAddressString, []byte(*i.FindBaseAddressString))
+				patchfile.Log("  FindBaseAddressString(%#v) | hex:%x\n", *i.FindBaseAddressString, []byte(*i.FindBaseAddressString))
 				err = pt.FindBaseAddressString(*i.FindBaseAddressString)
 			case i.ReplaceBytes != nil:
 				r := *i.ReplaceBytes
-				formats.Log("  ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
 			case i.ReplaceFloat != nil:
 				r := *i.ReplaceFloat
-				formats.Log("  ReplaceFloat(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceFloat(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceFloat(r.Offset, r.Find, r.Replace)
 			case i.ReplaceInt != nil:
 				r := *i.ReplaceInt
-				formats.Log("  ReplaceInt(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceInt(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceInt(r.Offset, r.Find, r.Replace)
 			case i.ReplaceString != nil:
 				r := *i.ReplaceString
-				formats.Log("  ReplaceString(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceString(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceString(r.Offset, r.Find, r.Replace)
 			case i.FindReplaceString != nil:
 				r := *i.FindReplaceString
-				formats.Log("  FindReplaceString(%#v, %#v)\n", r.Find, r.Replace)
-				formats.Log("    FindBaseAddressString(%#v)\n", r.Find)
+				patchfile.Log("  FindReplaceString(%#v, %#v)\n", r.Find, r.Replace)
+				patchfile.Log("    FindBaseAddressString(%#v)\n", r.Find)
 				err = pt.FindBaseAddressString(r.Find)
 				if err != nil {
 					err = errors.Wrap(err, "FindReplaceString")
 					break
 				}
-				formats.Log("    ReplaceString(0, %#v, %#v)\n", r.Find, r.Replace)
+				patchfile.Log("    ReplaceString(0, %#v, %#v)\n", r.Find, r.Replace)
 				err = pt.ReplaceString(0, r.Find, r.Replace)
 				if err != nil {
 					err = errors.Wrap(err, "FindReplaceString")
 					break
 				}
 			default:
-				formats.Log("  invalid instruction: %#v\n", i)
+				patchfile.Log("  invalid instruction: %#v\n", i)
 				err = errors.Errorf("invalid instruction: %#v", i)
 			}
 
 			if err != nil {
-				formats.Log("could not apply patch: %v\n", err)
+				patchfile.Log("could not apply patch: %v\n", err)
 				fmt.Printf("    Error: could not apply patch: %v\n", err)
 				return err
 			}
@@ -310,5 +311,5 @@ func (ps *PatchSet) SetEnabled(patch string, enabled bool) error {
 }
 
 func init() {
-	formats.RegisterFormat("kobopatch", Parse)
+	patchfile.RegisterFormat("kobopatch", Parse)
 }

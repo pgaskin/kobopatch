@@ -1,4 +1,5 @@
-package formats
+// Package patchfile provides a standard interface to read patchsets from files.
+package patchfile
 
 import (
 	"io/ioutil"

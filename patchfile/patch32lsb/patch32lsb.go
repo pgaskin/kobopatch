@@ -1,3 +1,4 @@
+// Package patch32lsb reads patch32lsb style patches.
 package patch32lsb
 
 import (
@@ -8,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/geek1011/kobopatch/kobopatch/formats"
+	"github.com/geek1011/kobopatch/patchfile"
 	"github.com/geek1011/kobopatch/patchlib"
 )
 
@@ -45,7 +46,7 @@ type instruction struct {
 }
 
 // Parse parses a PatchSet from a buf.
-func Parse(buf []byte) (formats.PatchSet, error) {
+func Parse(buf []byte) (patchfile.PatchSet, error) {
 	// TODO: make less hacky, make cleaner, add logs
 
 	ps := PatchSet{}
@@ -273,7 +274,7 @@ func (ps *PatchSet) Validate() error {
 
 // ApplyTo applies a PatchSet to a Patcher.
 func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
-	formats.Log("validating patch file\n")
+	patchfile.Log("validating patch file\n")
 	err := ps.Validate()
 	if err != nil {
 		err = errors.Wrap(err, "invalid patch file")
@@ -281,12 +282,12 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 		return err
 	}
 
-	formats.Log("looping over patches\n")
+	patchfile.Log("looping over patches\n")
 	num, total := 0, len(*ps)
 	for n, p := range *ps {
 		var err error
 		num++
-		formats.Log("  ResetBaseAddress()\n")
+		patchfile.Log("  ResetBaseAddress()\n")
 		pt.ResetBaseAddress()
 
 		enabled := false
@@ -296,53 +297,53 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				break
 			}
 		}
-		formats.Log("  Enabled: %t\n", enabled)
+		patchfile.Log("  Enabled: %t\n", enabled)
 
 		if !enabled {
-			formats.Log("  skipping patch `%s`\n", n)
+			patchfile.Log("  skipping patch `%s`\n", n)
 			fmt.Printf("  [%d/%d] Skipping disabled patch `%s`\n", num, total, n)
 			continue
 		}
 
-		formats.Log("  applying patch `%s`\n", n)
+		patchfile.Log("  applying patch `%s`\n", n)
 		fmt.Printf("  [%d/%d] Applying patch `%s`\n", num, total, n)
 
-		formats.Log("looping over instructions\n")
+		patchfile.Log("looping over instructions\n")
 		for _, i := range p {
 			switch {
 			case i.Enabled != nil || i.PatchGroup != nil || i.Comment != nil:
-				formats.Log("  skipping non-instruction Enabled(), PatchGroup() or Comment()\n")
+				patchfile.Log("  skipping non-instruction Enabled(), PatchGroup() or Comment()\n")
 				// Skip non-instructions
 				err = nil
 			case i.BaseAddress != nil:
-				formats.Log("  BaseAddress(%#v)\n", *i.BaseAddress)
+				patchfile.Log("  BaseAddress(%#v)\n", *i.BaseAddress)
 				err = pt.BaseAddress(*i.BaseAddress)
 			case i.FindBaseAddress != nil:
-				formats.Log("  FindBaseAddressString(%#v) | hex:%x\n", *i.FindBaseAddress, []byte(*i.FindBaseAddress))
+				patchfile.Log("  FindBaseAddressString(%#v) | hex:%x\n", *i.FindBaseAddress, []byte(*i.FindBaseAddress))
 				err = pt.FindBaseAddressString(*i.FindBaseAddress)
 			case i.ReplaceBytes != nil:
 				r := *i.ReplaceBytes
-				formats.Log("  ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
 			case i.ReplaceFloat != nil:
 				r := *i.ReplaceFloat
-				formats.Log("  ReplaceFloat(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceFloat(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceFloat(r.Offset, r.Find, r.Replace)
 			case i.ReplaceInt != nil:
 				r := *i.ReplaceInt
-				formats.Log("  ReplaceInt(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceInt(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceInt(r.Offset, r.Find, r.Replace)
 			case i.ReplaceString != nil:
 				r := *i.ReplaceString
-				formats.Log("  ReplaceString(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				patchfile.Log("  ReplaceString(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceString(r.Offset, r.Find, r.Replace)
 			default:
-				formats.Log("  invalid instruction: %#v\n", i)
+				patchfile.Log("  invalid instruction: %#v\n", i)
 				err = errors.Errorf("invalid instruction: %#v", i)
 			}
 
 			if err != nil {
-				formats.Log("could not apply patch: %v\n", err)
+				patchfile.Log("could not apply patch: %v\n", err)
 				fmt.Printf("    Error: could not apply patch: %v\n", err)
 				return err
 			}
@@ -441,5 +442,5 @@ func unescapeFirst(str string) (string, string, error) {
 }
 
 func init() {
-	formats.RegisterFormat("patch32lsb", Parse)
+	patchfile.RegisterFormat("patch32lsb", Parse)
 }

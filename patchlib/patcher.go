@@ -1,3 +1,4 @@
+// Package patchlib provides common functions related to patching binaries.
 package patchlib
 
 import (

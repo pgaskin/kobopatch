@@ -1,3 +1,4 @@
+// Command patch32lsb reimplements patch32lsb in Go.
 package main
 
 import (
@@ -15,7 +16,7 @@ import (
 
 var version = "unknown"
 
-// TODO: use formats package
+// TODO: use formats package to reduce duplication of code
 
 func main() {
 	patchFile := pflag.StringP("patch-file", "p", "", "File to read patches from (required)")

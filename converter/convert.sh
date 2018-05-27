@@ -101,6 +101,8 @@ EOF
 This is for use with firmware $ver.
 
 === How to use: ===
+Make sure your kobo is already running the firmware version you are trying to patch.
+
 1. Download the firmware from https://geek1011.github.io/KoboStuff/kobofirmware.html to the src folder.
    The zip should be called something like kobo-update-1.2.3456.zip
 2. Enable patches in the files in the src folder (or use the overrides in kobopatch.yaml).

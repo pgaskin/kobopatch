@@ -269,7 +269,7 @@ func main() {
 	}
 
 	log("patch success\n")
-	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s\n", cfg.Out)
+	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s. Remember to make sure your kobo is running the target firmware version before patching.\n", cfg.Out)
 
 	if runtime.GOOS == "windows" {
 		fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")

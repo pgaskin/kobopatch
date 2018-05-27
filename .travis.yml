@@ -1,4 +1,19 @@
 language: go
+go: 
+ - "1.10"
 
-go:
-  - "1.10.x"
+script:
+ - make clean
+ - make build-deps
+ - make deps
+ - make generate
+ - make test
+ - make build
+
+deploy:
+  provider: script
+  script: /bin/bash $TRAVIS_BUILD_DIR/release.sh
+  skip_cleanup: true
+  on:
+    tags: true
+branch: master

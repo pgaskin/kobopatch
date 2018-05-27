@@ -33,6 +33,5 @@ An improved alternative to patch32lsb. WIP.
 - Zlib support (coming soon)
 
 **Testing:**
-- Requires Linux and icdiff
 - Unit tests (automatically run by Travis CI): `go test -v ./...`
-- Real tests (compares original and new): `./testalllibnickel.sh` and `./testallnickel.sh`
+- Real tests (compares original and new): rewrite coming soon, already done manually

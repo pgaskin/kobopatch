@@ -37,7 +37,8 @@ type config struct {
 var log = func(format string, a ...interface{}) {}
 
 func main() {
-	fmt.Printf("kobopatch %s\n\n", version)
+	fmt.Printf("kobopatch %s\n", version)
+	fmt.Printf("https://github.com/geek1011/kobopatch\n\n")
 
 	fmt.Printf("Reading config file (kobopatch.yaml)\n")
 

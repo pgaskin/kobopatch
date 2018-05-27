@@ -37,16 +37,7 @@ else
     echo "$(git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --oneline)" | tee -a build/release-notes.md
 fi
 
-echo "Building kobopatch $APP_VERSION for windows 386"
-GOOS=windows GOARCH=386 go build -ldflags "-X main.version=$APP_VERSION" -o "build/kobopatch-windows.exe" github.com/geek1011/kobopatch/kobopatch
-echo "Building kobopatch $APP_VERSION for linux amd64"
-GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$APP_VERSION" -o "build/kobopatch-linux-64bit" github.com/geek1011/kobopatch/kobopatch
-echo "Building kobopatch $APP_VERSION for linux 386"
-GOOS=linux GOARCH=386 go build -ldflags "-X main.version=$APP_VERSION" -o "build/kobopatch-linux-32bit" github.com/geek1011/kobopatch/kobopatch
-echo "Building kobopatch $APP_VERSION for linux arm"
-GOOS=linux GOARCH=arm go build -ldflags "-X main.version=$APP_VERSION" -o "build/kobopatch-linux-arm" github.com/geek1011/kobopatch/kobopatch
-echo "Building kobopatch $APP_VERSION for darwin amd64"
-GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$APP_VERSION" -o "build/kobopatch-darwin-64bit" github.com/geek1011/kobopatch/kobopatch
+make cross convert
 
 if [[ "$SKIP_UPLOAD" != "true" ]]; then
     echo "Creating release"
@@ -64,6 +55,18 @@ if [[ "$SKIP_UPLOAD" != "true" ]]; then
         --description "$(cat build/release-notes.md)"
 
     for f in build/kobopatch*;do 
+        fn="$(basename $f)"
+        echo "Uploading $fn"
+        GITHUB_TOKEN=$GITHUB_TOKEN github-release upload \
+            --user geek1011 \
+            --repo kobopatch \
+            --tag $APP_VERSION \
+            --name "$fn" \
+            --file "$f" \
+            --replace
+    done
+
+    for f in converter/out/kobopatch*;do 
         fn="$(basename $f)"
         echo "Uploading $fn"
         GITHUB_TOKEN=$GITHUB_TOKEN github-release upload \

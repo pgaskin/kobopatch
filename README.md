@@ -9,12 +9,14 @@ An improved alternative to patch32lsb. WIP.
 - [X] kobopatch: support new format
 - [X] kobopatch: support old format
 - [X] kobopatch: pluggable format system
-- [ ] Zlib support
-- [ ] Automatic builds
+- [X] Automatic builds
 - [X] Alternative patch format (which has more reliable and has less complex parsing)
 - [X] Manually check hashes of output from both batch formats with each other and the old patcher with all patches enabled to ensure reliability
 - [X] Patch overrides to force enable/disable patches in a portable way.
 - [X] Patch consistency check
+- [X] Convert old patch zips
+- [ ] Zlib support
+- [ ] Improve build scripts
 
 **Improvements/Goals:**
 - More readable code

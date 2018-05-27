@@ -1,0 +1,1 @@
+The zips are downloaded from MobileRead and were made (mainly) by GeoffR.

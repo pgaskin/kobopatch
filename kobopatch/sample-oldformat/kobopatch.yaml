@@ -29,7 +29,6 @@ patches:
 ##     You get the idea: yes
 overrides:
   nickel.patch:
-    Custom synopsis/details line spacing: yes
   libadobe.so.patch:
   libnickel.so.1.0.0.patch:
   librmsdk.so.1.0.0.patch:

@@ -63,6 +63,7 @@ overrides:
   src/libnickel.so.1.0.0.patch:
   src/librmsdk.so.1.0.0.patch:
 EOF
+    unix2dos "tmp/$kbn/kobopatch.yaml"
     cat <<'EOF' > "tmp/$kbn/kobopatch.sh"
 #!/bin/bash
 cd "$(dirname "$0")"
@@ -93,7 +94,7 @@ EOF
 @echo off
 cd "%~dp0"
 erase "KoboRoot.tgz" >nul 2>&1
-./bin/kobopatch-windows.exe
+"./bin/kobopatch-windows.exe"
 EOF
     unix2dos "tmp/$kbn/kobopatch.bat"
     cat <<EOF > "tmp/$kbn/readme.txt"

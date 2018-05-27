@@ -1,0 +1,17 @@
+# libadobe.so in firmware 4.8.11073 (b628114af7)
+
+<Patch>
+patch_name = `Remove PDF map widget shown during panning`
+patch_enable = `yes`
+replace_bytes = 032C22, 00 AF, 19 E0
+</Patch>
+
+#<Patch>
+#patch_name = `Preserve PDF pan position across page turns`
+# Missing, last working in version 4.??.????
+#</Patch>
+
+#<Patch>
+#patch_name = `Remove PDF page turn arrows at left and right edges of page`
+# Missing, last working in version 3.19.5761
+#</Patch>

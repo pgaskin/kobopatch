@@ -15,6 +15,8 @@ import (
 
 var version = "unknown"
 
+// TODO: use formats package
+
 func main() {
 	patchFile := pflag.StringP("patch-file", "p", "", "File to read patches from (required)")
 	inputFile := pflag.StringP("input-file", "i", "", "File to apply patches to (required)")
@@ -23,7 +25,6 @@ func main() {
 	pflag.Parse()
 
 	fmt.Printf("patch32lsb %s\n", version)
-	fmt.Printf("THIS IS STILL IN PROGESS. DO NOT USE IT ON A REAL DEVICE UNLESS YOU ARE PREPARED TO REIMAGE THE SD CARD.\n\n")
 
 	if *help || *inputFile == "" || *patchFile == "" {
 		pflag.Usage()

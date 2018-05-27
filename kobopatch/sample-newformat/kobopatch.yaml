@@ -3,7 +3,7 @@ in: kobo-update-4.8.10956.zip
 out: KoboRoot.tgz
 log: log.txt
 
-useNewPatchFormat: true
+patchFormat: kobopatch
 
 patches:
   nickel.yaml: usr/local/Kobo/nickel

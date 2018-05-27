@@ -1,0 +1,214 @@
+# librmsdk.so.1.0.0 in firmware 4.8.11073 (b628114af7)
+# For use by patch32lsb v0.10 or later.
+
+<Patch>
+patch_name = `Disable orphans/widows avoidance`
+patch_enable = `yes`
+#
+### Enable this patch to avoid blank lines at the bottom of pages in ePub books.
+#
+# The default values of orphans:2; widows:2; cause extra blank lines to be added
+# to some pages to avoid leaving isolated lines of a paragraph at the top or
+# bottom of a page. Enabling this patch effectively forces orphans:1; widows:1;,
+# overriding the defaults and the book's stylesheet.
+#
+# Beware that this patch might(?) intefere with related CSS properties such as
+# page-break-after:avoid; or page-break-inside:avoid;. A better solution would
+# be to edit the book's stylesheet to set orphans:1; widows:1;.
+#
+# (This patch was previously named `Fix page breaks bug`, but that bug [the long
+# paragraph bug] was fixed in firmware version 3.5.0.)
+#
+replace_bytes = 295DDC, E6 D0, E6 E7
+#Alternative method
+#replace_bytes = 295DDC, E6 D0, 00 46
+</Patch>
+
+
+<Patch>
+patch_name = `Default ePub monospace font (Courier)`
+patch_enable = `yes`
+# Multi-version patch: 3.3.0 - 4.8.11073+
+#
+## Kobo devices don't come with any monospace fonts. If the book's stylesheet
+## specifies font-family:monospace; then the ePub reader will try to use the
+## "Courier Std" font, but even if that font were installed it wouldn't work
+## because the pathnames used by the ePub reader to request the font are wrong.
+##
+## This patch lets the EPUB reader use any font with a name beginning "Courier"
+## (e.g. Courier Prime, available at http://quoteunquoteapps.com/courierprime)
+## as the default monospace font instead of just Adobe's Courier Std font, and
+## also corrects the pathnames so that it can be found. If no suitably named
+## font is installed then this patch will have no effect.
+#
+# To use a different font name, change "Courier" in the replacement string to
+# another font name prefix (7 letters max.). For example, change
+# `normal/Courier` to `normal/Dark`, `bold/Courier` to `bold/Dark`, etc. to
+# use HP's Dark Courier font available at
+# http://h20000.www2.hp.com/hpsc/swd/public/detail?swItemId=lj611en
+#
+find_base_address = `CourierStd.otf`
+replace_string = 0000, `CourierStd.otf`, `normal/Courier`
+find_base_address = `CourierStd-Bold.otf`
+replace_string = 0000, `CourierStd-Bold.otf`, `bold/Courier`
+find_base_address = `CourierStd-Oblique.otf`
+replace_string = 0000, `CourierStd-Oblique.otf`, `italic/Courier`
+find_base_address = `CourierStd-BoldOblique.otf`
+replace_string = 0000, `CourierStd-BoldOblique.otf`, `bolditalic/Courier`
+</Patch>
+
+
+<Patch>
+patch_name = `Default ePub serif font (Amasis)`
+patch_enable = `yes`
+# Multi-version patch: 4.8.11073 - 4.8.11073+
+#
+## This patch changes the default ePub serif font from Georgia to Amasis.
+#
+# To use a different font, change "Amasis" in each of the replacement strings
+# to another font name prefix (7 letters max.). For example, change "Amasis"
+# to "Times" to use a sideloaded Times New Roman font.
+#
+find_base_address = `/normal/georgia`
+replace_string = 0000, `/normal/georgia`, `/normal/Amasis`
+find_base_address = `/bold/georgia`
+replace_string = 0000, `/bold/georgia`, `/bold/Amasis`
+find_base_address = `/italic/georgia`
+replace_string = 0000, `/italic/georgia`, `/italic/Amasis`
+find_base_address = `/bolditalic/georgia`
+replace_string = 0000, `/bolditalic/georgia`, `/bolditalic/Amasis`
+</Patch>
+
+
+<Patch>
+patch_name = `Default ePub sans-serif font (Gill Sans)`
+patch_enable = `yes`
+# Multi-version patch: 4.8.11073 - 4.8.11073+
+#
+## This patch changes the default ePub sans-serif font from Avenir to Gill Sans.
+#
+# To use a different font, change "Gill" in the replacement string to another
+# font name prefix (6 letters max.). For example change "Gill" to "Trebuc" to
+# use a sideloaded Trebuchet font.
+#
+find_base_address = `/normal/Avenir`
+replace_string = 0000, `/normal/Avenir`, `/normal/Gill`
+find_base_address = `/bold/Avenir`
+replace_string = 0000, `/bold/Avenir`, `/bold/Gill`
+find_base_address = `/italic/Avenir`
+replace_string = 0000, `/italic/Avenir`, `/italic/Gill`
+find_base_address = `/bolditalic/Avenir`
+replace_string = 0000, `/bolditalic/Avenir`, `/bolditalic/Gill`
+</Patch>
+
+<Patch>
+patch_name = `Default ePub symbol font (Symbol)`
+patch_enable = `yes`
+# Multi-version patch: 3.3.0 - 4.8.11073+
+#
+## Sets the ePub default symbol font? I Don't know what this does!
+#
+find_base_address = `/SymbolStd.otf`
+replace_string = 0000, `/SymbolStd.otf`, `/normal/Symbol`
+</Patch>
+
+
+<Patch>
+patch_name = `Force user line spacing in ePubs (Part 2 of 2)`
+patch_enable = `yes`
+# Multi-version patch: 3.3.0 - 4.8.11073+
+#
+## This is part 2 of 2. Also enable part 1 in libnickel.so.1.0.0.patch
+##
+## This patch prevents any line-height style set in the book's stylesheet from
+## being recognised. It will spoil the formatting of some books, but will ensure
+## that the line spacing set with the adjustment slider takes effect. (Unless
+## the publisher has used the font shorthand style; see option below.)
+#
+find_base_address = `\0line-height\0`
+replace_string = 0001, `l`, `_`
+#
+# Uncomment the following two lines to also prevent the font shorthand style
+# from being recognised. The font shorthand style is not very common in ePubs,
+# but where used it can also prevent the line spacing from being adjusted.
+# Beware that this option will likely have much bigger side-effects on the
+# book's formatting, because the font shorthand style is used to set the
+# font-size, font family, and other styles in addition to line-height.
+#
+#find_base_address = `\0font\0`
+#replace_string = 0001, `f`, `_`
+</Patch>
+
+
+<Patch>
+patch_name = `Force user font-family in ePubs (Part 2 of 2)`
+patch_enable = `yes`
+# Multi-version patch: 3.3.0 - 4.8.11073+
+#
+## This is part 2 of 2. Also enable part 1 in libnickel.so.1.0.0.patch
+##
+## This patch prevents any font-family style set in the book's stylesheet from
+## being recognised. It might spoil the style of books which use multiple fonts,
+## but will ensure that the font-family set from the device menu takes effect.
+## (Unless the publisher has used the font shorthand style; see option below.)
+#
+find_base_address = `\0font-family\0`
+replace_string = 0001, `f`, `_`
+#
+# Uncomment the following two lines to also prevent the font shorthand style
+# from being recognised. The font shorthand style is not very common in ePubs,
+# but where used it can also prevent the font-family from being adjusted.
+# Beware that this option will likely have much bigger side-effects on those
+# book's formatting, because the font shorthand style is used to set the
+# font-size, line-height, and other styles in addition to font-family.
+#
+#find_base_address = `\0font\0`
+#replace_string = 0001, `f`, `_`
+</Patch>
+
+
+<Patch>
+patch_name = `Ignore ePub book Adobe XPGT stylesheet (page-template.xpgt)`
+patch_enable = `yes`
+# Multi-version patch: 3.3.0 - 4.8.11073+
+#
+## Not all ePubs have an Adobe XPGT stylesheet, and the ones that do often use
+## it mainly to set the page margins. Unfortunately those margins are added to
+## the page margins set via @page in the CSS stylesheet, and cannot be overidden
+## by the `ePub fixed/ajustable top/bottom margins` patch.
+##
+## This patch should cause any Adobe XPGT stylesheet in the book to be ignored,
+## but for the book's CSS stylesheet still to be used as normal.
+##
+## (You might prefer to remove the margins from the book's XPGT stylesheet
+## before sideloading, instead of using this patch. Calibre's Modify ePub plugin
+## has a useful option for doing this.)
+#
+find_base_address = `\0template\0`
+replace_string = 0001, `t`, `_`
+</Patch>
+
+
+#
+# The following two patches will not be useful to most people,
+# don't enable them unless you are sure you need them.
+#
+
+<Patch>
+patch_name = `Ignore ePub book CSS and Adobe XPGT stylesheets`
+patch_enable = `yes`
+# Multi-version patch: 3.3.0 - 4.8.11073+
+find_base_address = `\0stylesheet\0`
+replace_string = 0001, `s`, `_`
+find_base_address = `\0style-sheet\0`
+replace_string = 0001, `s`, `_`
+</Patch>
+
+
+<Patch>
+patch_name = `Ignore ePub TOC navpoints`
+patch_enable = `yes`
+# Multi-version patch: 3.3.0 - 4.8.11073+
+find_base_address = `\0navPoint\0`
+replace_string = 0001, `n`, `_`
+</Patch>

@@ -2,6 +2,8 @@ lns
 lnse
 patch32lsb/build
 kobopatch/build
-kobopatch/sample/*.zip
-kobopatch/sample/*.tgz
-kobopatch/sample/log.txt
+kobopatch/sample*/*.zip
+kobopatch/sample*/*.tgz
+kobopatch/sample*/log.txt
+kobopatch/sample*/*/*/*/*.zip
+kobopatch/sample*/*/*/*/*.tgz

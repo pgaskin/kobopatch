@@ -11,9 +11,11 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
+	"github.com/geek1011/kobopatch/kobopatch/formats"
+	_ "github.com/geek1011/kobopatch/kobopatch/formats/kobopatch"
+	_ "github.com/geek1011/kobopatch/kobopatch/formats/patch32lsb"
 	"github.com/geek1011/kobopatch/patchlib"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -21,12 +23,12 @@ import (
 var version = "unknown"
 
 type config struct {
-	Version           string            `yaml:"version" json:"version"`
-	In                string            `yaml:"in" json:"in"`
-	Out               string            `yaml:"out" json:"out"`
-	Log               string            `yaml:"log" json:"log"`
-	UseNewPatchFormat bool              `yaml:"useNewPatchFormat" json:"useNewPatchFormat"`
-	Patches           map[string]string `yaml:"patches" json:"patches"`
+	Version     string            `yaml:"version" json:"version"`
+	In          string            `yaml:"in" json:"in"`
+	Out         string            `yaml:"out" json:"out"`
+	Log         string            `yaml:"log" json:"log"`
+	PatchFormat string            `yaml:"patchFormat" json:"patchFormat"`
+	Patches     map[string]string `yaml:"patches" json:"patches"`
 }
 
 var log = func(format string, a ...interface{}) {}
@@ -45,8 +47,9 @@ func main() {
 		checkErr(errors.New("version, in, out, and log are required"), "Could not parse kobopatch.yaml")
 	}
 
-	if !cfg.UseNewPatchFormat {
-		checkErr(errors.New("only the new patch format is supported"), "Error")
+	_, ok := formats.GetFormat(cfg.PatchFormat)
+	if !ok {
+		checkErr(errors.New("invalid patch format"), "Error")
 	}
 
 	logf, err := os.Create(cfg.Log)
@@ -55,6 +58,9 @@ func main() {
 
 	log = func(format string, a ...interface{}) {
 		fmt.Fprintf(logf, format, a...)
+	}
+	formats.Log = func(format string, a ...interface{}) {
+		fmt.Fprintf(logf, "        "+format, a...)
 	}
 
 	d, _ := os.Getwd()
@@ -142,11 +148,15 @@ func main() {
 		pt := patchlib.NewPatcher(fbuf)
 
 		log("    loading patch file: %s\n", pfn)
-		pf, err := newPatchFile(pfn)
+		ps, err := formats.ReadFromFile(cfg.PatchFormat, pfn)
 		checkErr(err, "Could not read and parse patch file "+pfn)
 
+		log("    validating patch file\n")
+		err = ps.Validate()
+		checkErr(err, "Invalid patch file "+pfn)
+
 		log("    applying patch file\n")
-		err = pf.ApplyTo(pt)
+		err = ps.ApplyTo(pt)
 		checkErr(err, "Could not apply patch file "+pfn)
 
 		fbuf = pt.GetBytes()
@@ -193,6 +203,8 @@ func main() {
 	err = ioutil.WriteFile(cfg.Out, outw.Bytes(), 0644)
 	checkErr(err, "Could not write patched KoboRoot.tgz")
 
+	// TODO: reread tgz and compare file size for checking consistency
+
 	log("patch success\n")
 	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s\n", cfg.Out)
 
@@ -218,294 +230,4 @@ func checkErr(err error, msg string) {
 		time.Sleep(time.Second * 60)
 	}
 	os.Exit(1)
-}
-
-type patchFile map[string]patch
-type patch []instruction
-type instruction struct {
-	Enabled               *bool   `yaml:"Enabled,omitempty"`
-	Description           *string `yaml:"Description,omitempty"`
-	PatchGroup            *string `yaml:"PatchGroup,omitempty"`
-	BaseAddress           *int32  `yaml:"BaseAddress,omitempty"`
-	FindBaseAddressHex    *string `yaml:"FindBaseAddressHex,omitempty"`
-	FindBaseAddressString *string `yaml:"FindBaseAddressString,omitempty"`
-	FindReplaceString     *struct {
-		Find    string `yaml:"Find,omitempty"`
-		Replace string `yaml:"Replace,omitempty"`
-	} `yaml:"FindReplaceString,omitempty"`
-	ReplaceString *struct {
-		Offset  int32  `yaml:"Offset,omitempty"`
-		Find    string `yaml:"Find,omitempty"`
-		Replace string `yaml:"Replace,omitempty"`
-	} `yaml:"ReplaceString,omitempty"`
-	ReplaceInt *struct {
-		Offset  int32 `yaml:"Offset,omitempty"`
-		Find    uint8 `yaml:"Find,omitempty"`
-		Replace uint8 `yaml:"Replace,omitempty"`
-	} `yaml:"ReplaceInt,omitempty"`
-	ReplaceFloat *struct {
-		Offset  int32   `yaml:"Offset,omitempty"`
-		Find    float64 `yaml:"Find,omitempty"`
-		Replace float64 `yaml:"Replace,omitempty"`
-	} `yaml:"ReplaceFloat,omitempty"`
-	ReplaceBytes *struct {
-		Offset   int32   `yaml:"Offset,omitempty"`
-		FindH    *string `yaml:"FindH,omitempty"`
-		ReplaceH *string `yaml:"ReplaceH,omitempty"`
-		Find     []byte  `yaml:"Find,omitempty"`
-		Replace  []byte  `yaml:"Replace,omitempty"`
-	} `yaml:"ReplaceBytes,omitempty"`
-}
-
-func newPatchFile(filename string) (*patchFile, error) {
-	log("        loading patch file\n")
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("error reading patch file: %v", err)
-	}
-
-	log("        parsing patch file\n")
-	pf := &patchFile{}
-	err = yaml.UnmarshalStrict(buf, &pf)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing patch file: %v", err)
-	}
-
-	log("        parsing patch file: expanding shorthand hex values\n")
-	for n := range *pf {
-		for i := range (*pf)[n] {
-			if (*pf)[n][i].ReplaceBytes != nil {
-				if ((*pf)[n][i].ReplaceBytes).FindH != nil {
-					hex := *((*pf)[n][i].ReplaceBytes).FindH
-					_, err := fmt.Sscanf(
-						strings.Replace(hex, " ", "", -1),
-						"%x\n",
-						&((*pf)[n][i].ReplaceBytes).Find,
-					)
-					if err != nil {
-						log("          error decoding hex `%s`: %v\n", hex, err)
-						return nil, fmt.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
-					}
-					log("          decoded hex `%s` to `%v`\n", hex, ((*pf)[n][i].ReplaceBytes).Find)
-				}
-				if ((*pf)[n][i].ReplaceBytes).ReplaceH != nil {
-					hex := *((*pf)[n][i].ReplaceBytes).ReplaceH
-					_, err := fmt.Sscanf(
-						strings.Replace(hex, " ", "", -1),
-						"%x\n",
-						&((*pf)[n][i].ReplaceBytes).Replace,
-					)
-					if err != nil {
-						log("          error decoding hex `%s`: %v\n", hex, err)
-						return nil, fmt.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
-					}
-					log("          decoded hex `%s` to `%v`\n", hex, ((*pf)[n][i].ReplaceBytes).Replace)
-				}
-			}
-		}
-	}
-
-	log("        validating patch file\n")
-	err = pf.validate()
-	if err != nil {
-		return nil, fmt.Errorf("invalid patch file: %v", err)
-	}
-
-	return pf, nil
-}
-
-func (pf *patchFile) ApplyTo(pt *patchlib.Patcher) error {
-	log("        validating patch file\n")
-	err := pf.validate()
-	if err != nil {
-		err = fmt.Errorf("invalid patch file: %v", err)
-		fmt.Printf("  Error: %v\n", err)
-		return err
-	}
-
-	log("        looping over patches\n")
-	num, total := 0, len(*pf)
-	for n, p := range *pf {
-		var err error
-		num++
-		log("          ResetBaseAddress()\n")
-		pt.ResetBaseAddress()
-
-		enabled := false
-		for _, i := range p {
-			if i.Enabled != nil && *i.Enabled {
-				enabled = *i.Enabled
-				break
-			}
-		}
-		log("          Enabled: %t\n", enabled)
-
-		if !enabled {
-			log("          skipping patch `%s`\n", n)
-			fmt.Printf("  [%d/%d] Skipping disabled patch `%s`\n", num, total, n)
-			continue
-		}
-
-		log("          applying patch `%s`\n", n)
-		fmt.Printf("  [%d/%d] Applying patch `%s`\n", num, total, n)
-
-		log("        looping over instructions\n")
-		for _, i := range p {
-			switch {
-			case i.Enabled != nil || i.PatchGroup != nil || i.Description != nil:
-				log("          skipping non-instruction Enabled(), PatchGroup() or Description()\n")
-				// Skip non-instructions
-				err = nil
-			case i.BaseAddress != nil:
-				log("          BaseAddress(%#v)\n", *i.BaseAddress)
-				err = pt.BaseAddress(*i.BaseAddress)
-			case i.FindBaseAddressHex != nil:
-				log("          FindBaseAddressHex(%#v)\n", *i.FindBaseAddressHex)
-				buf := []byte{}
-				_, err = fmt.Sscanf(strings.Replace(*i.FindBaseAddressHex, " ", "", -1), "%x\n", &buf)
-				if err != nil {
-					err = fmt.Errorf("FindBaseAddresHex: invalid hex string")
-					break
-				}
-				err = pt.FindBaseAddress(buf)
-			case i.FindBaseAddressString != nil:
-				log("          FindBaseAddressString(%#v) | hex:%x\n", *i.FindBaseAddressString, []byte(*i.FindBaseAddressString))
-				err = pt.FindBaseAddressString(*i.FindBaseAddressString)
-			case i.ReplaceBytes != nil:
-				r := *i.ReplaceBytes
-				log("          ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
-				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
-			case i.ReplaceFloat != nil:
-				r := *i.ReplaceFloat
-				log("          ReplaceFloat(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
-				err = pt.ReplaceFloat(r.Offset, r.Find, r.Replace)
-			case i.ReplaceInt != nil:
-				r := *i.ReplaceInt
-				log("          ReplaceInt(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
-				err = pt.ReplaceInt(r.Offset, r.Find, r.Replace)
-			case i.ReplaceString != nil:
-				r := *i.ReplaceString
-				log("          ReplaceString(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
-				err = pt.ReplaceString(r.Offset, r.Find, r.Replace)
-			case i.FindReplaceString != nil:
-				r := *i.FindReplaceString
-				log("          FindReplaceString(%#v, %#v)\n", r.Find, r.Replace)
-				log("            FindBaseAddressString(%#v)\n", r.Find)
-				err = pt.FindBaseAddressString(r.Find)
-				if err != nil {
-					err = fmt.Errorf("FindReplaceString: %v", err)
-					break
-				}
-				log("            ReplaceString(0, %#v, %#v)\n", r.Find, r.Replace)
-				err = pt.ReplaceString(0, r.Find, r.Replace)
-				if err != nil {
-					err = fmt.Errorf("FindReplaceString: %v", err)
-					break
-				}
-			default:
-				log("          invalid instruction: %#v\n", i)
-				err = fmt.Errorf("invalid instruction: %#v", i)
-			}
-
-			if err != nil {
-				log("        could not apply patch: %v\n", err)
-				fmt.Printf("    Error: could not apply patch: %v\n", err)
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (pf *patchFile) validate() error {
-	enabledPatchGroups := map[string]bool{}
-	for n, p := range *pf {
-		ec := 0
-		e := false
-		pgc := 0
-		pg := ""
-		dc := 0
-
-		rbc := 0
-		roc := 0
-		fbsc := 0
-
-		for _, i := range p {
-			ic := 0
-			if i.Enabled != nil {
-				ec++
-				e = *i.Enabled
-				ic++
-			}
-			if i.Description != nil {
-				dc++
-				ic++
-			}
-			if i.PatchGroup != nil {
-				pgc++
-				pg = *i.PatchGroup
-				ic++
-			}
-			if i.BaseAddress != nil {
-				ic++
-			}
-			if i.FindBaseAddressString != nil {
-				ic++
-				fbsc++
-			}
-			if i.FindBaseAddressHex != nil {
-				ic++
-			}
-			if i.ReplaceBytes != nil {
-				ic++
-				rbc++
-			}
-			if i.ReplaceFloat != nil {
-				ic++
-				roc++
-			}
-			if i.ReplaceInt != nil {
-				ic++
-				roc++
-			}
-			if i.ReplaceString != nil {
-				ic++
-				roc++
-			}
-			if i.FindReplaceString != nil {
-				ic++
-				roc++
-			}
-			log("          ic:%d\n", ic)
-			if ic < 1 {
-				return fmt.Errorf("internal error while validating `%s` (you should report this as a bug)", n)
-			}
-			if ic > 1 {
-				return fmt.Errorf("more than one instruction per bullet in patch `%s` (you might be missing a -)", n)
-			}
-		}
-		log("          ec:%d, e:%t, pgc:%d, pg:%s, dc:%d, rbc:%d, roc: %d, fbsc:%d\n", ec, e, pgc, pg, dc, rbc, roc, fbsc)
-		if ec < 1 {
-			return fmt.Errorf("no `Enabled` option in `%s`", n)
-		} else if ec > 1 {
-			return fmt.Errorf("more than one `Enabled` option in `%s`", n)
-		}
-		if dc > 1 {
-			return fmt.Errorf("more than one `Description` option in `%s` (use comments to describe individual lines)", n)
-		}
-		if pgc > 1 {
-			return fmt.Errorf("more than one `PatchGroup` option in `%s`", n)
-		}
-		if pg != "" && e {
-			if _, ok := enabledPatchGroups[pg]; ok {
-				return fmt.Errorf("more than one patch enabled in PatchGroup `%s`", pg)
-			}
-			enabledPatchGroups[pg] = true
-		}
-		if roc == 0 && rbc > 0 && fbsc > 0 {
-			return fmt.Errorf("use FindBaseAddressHex for hex replacements because FindBaseAddressString will lose control characters (patch `%s`)", n)
-		}
-	}
-	log("          enabledPatchGroups:%v\n", enabledPatchGroups)
-	return nil
 }

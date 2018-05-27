@@ -1,0 +1,12 @@
+version: 4.8.11073
+in: kobo-update-4.8.11073.zip
+out: KoboRoot.tgz
+log: log.txt
+
+patchFormat: patch32lsb
+
+patches:
+  nickel.patch: usr/local/Kobo/nickel
+  libadobe.so.patch: usr/local/Kobo/libadobe.so
+  libnickel.so.1.0.0.patch: usr/local/Kobo/libnickel.so.1.0.0
+  librmsdk.so.1.0.0.patch: usr/local/Kobo/librmsdk.so.1.0.0

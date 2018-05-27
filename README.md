@@ -1,5 +1,5 @@
 # kobopatch
-An improved alternative to patch32lsb. WIP.
+An improved patching system for Kobo eReaders. See https://www.mobileread.com/forums/showthread.php?t=297338 .
 
 **Progress:**
 - [X] Core patching functionality (./patchlib)

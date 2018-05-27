@@ -295,13 +295,13 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 
 // SetEnabled sets the Enabled state of a Patch in a PatchSet.
 func (ps *PatchSet) SetEnabled(patch string, enabled bool) error {
-	for n, p := range *ps {
+	for n := range *ps {
 		if n != patch {
 			continue
 		}
-		for _, i := range p {
-			if i.Enabled != nil {
-				i.Enabled = &enabled
+		for i := range (*ps)[n] {
+			if (*ps)[n][i].Enabled != nil {
+				*(*ps)[n][i].Enabled = enabled
 				return nil
 			}
 		}

@@ -83,6 +83,9 @@ case `uname -s` in
             arm*)
                 ./bin/kobopatch-linux-arm
                 ;;
+            aarch64)
+                ./bin/kobopatch-linux-arm
+                ;;
             *)
                 echo "Unsupported architecture"
 	esac

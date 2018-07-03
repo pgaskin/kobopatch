@@ -16,7 +16,6 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - [X] Patch consistency check
 - [X] Convert old patch zips
 - [ ] Zlib support
-- [ ] Improve build scripts
 
 **Improvements/Goals:**
 - More readable code
@@ -30,7 +29,7 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - Optional improved patch format
 - Faster and lower memory consumption
 - No need for temp files
-- Save and restore lists of enabled patches (coming soon)
+- Save and restore lists of enabled patches
 - more (coming soon)
 - Zlib support (coming soon)
 

@@ -9,6 +9,12 @@
 			"revisionTime": "2018-02-21T22:46:20Z"
 		},
 		{
+			"checksumSHA1": "L3leymg2RT8hFl5uL+5KP/LpBkg=",
+			"path": "github.com/mitchellh/go-wordwrap",
+			"revision": "ad45545899c7b13c020ea92b2072220eefad42b8",
+			"revisionTime": "2015-03-14T17:03:34Z"
+		},
+		{
 			"checksumSHA1": "jxORqtJ6VSFi4F45Wg1wxc2aUsc=",
 			"path": "github.com/ogier/pflag",
 			"revision": "45c278ab3607870051a2ea9040bb85fcb8557481",

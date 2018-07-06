@@ -137,7 +137,6 @@ func main() {
 				log("    entry needs patching\n")
 				needsPatching = true
 				patchfiles = append(patchfiles, n)
-				break
 			}
 		}
 		log("    matching patch files: %v\n", patchfiles)

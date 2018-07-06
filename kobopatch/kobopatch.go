@@ -131,15 +131,16 @@ func main() {
 
 		log("    checking if entry needs patching\n")
 		var needsPatching bool
-		var pfn string
+		patchfiles := []string{}
 		for n, f := range cfg.Patches {
 			if h.Name == "./"+f || h.Name == f {
 				log("    entry needs patching\n")
 				needsPatching = true
-				pfn = n
+				patchfiles = append(patchfiles, n)
 				break
 			}
 		}
+		log("    matching patch files: %v\n", patchfiles)
 
 		if !needsPatching {
 			log("    entry does not need patching\n")
@@ -159,30 +160,32 @@ func main() {
 
 		pt := patchlib.NewPatcher(fbuf)
 
-		log("    loading patch file: %s\n", pfn)
-		ps, err := patchfile.ReadFromFile(cfg.PatchFormat, pfn)
-		checkErr(err, "Could not read and parse patch file "+pfn)
+		for _, pfn := range patchfiles {
+			log("    loading patch file: %s\n", pfn)
+			ps, err := patchfile.ReadFromFile(cfg.PatchFormat, pfn)
+			checkErr(err, "Could not read and parse patch file "+pfn)
 
-		for ofn, o := range cfg.Overrides {
-			if ofn != pfn || o == nil || len(o) < 1 {
-				continue
+			for ofn, o := range cfg.Overrides {
+				if ofn != pfn || o == nil || len(o) < 1 {
+					continue
+				}
+				fmt.Printf("  Applying overrides from config\n")
+				for on, os := range o {
+					log("    override: %s -> %t\n", on, os)
+					fmt.Printf("    '%s' -> enabled:%t\n", on, os)
+					err := ps.SetEnabled(on, os)
+					checkErr(err, "Could not override patch '"+on+"'")
+				}
 			}
-			fmt.Printf("  Applying overrides from config\n")
-			for on, os := range o {
-				log("    override: %s -> %t\n", on, os)
-				fmt.Printf("    '%s' -> enabled:%t\n", on, os)
-				err := ps.SetEnabled(on, os)
-				checkErr(err, "Could not override patch '"+on+"'")
-			}
+
+			log("    validating patch file\n")
+			err = ps.Validate()
+			checkErr(err, "Invalid patch file "+pfn)
+
+			log("    applying patch file\n")
+			err = ps.ApplyTo(pt)
+			checkErr(err, "Could not apply patch file "+pfn)
 		}
-
-		log("    validating patch file\n")
-		err = ps.Validate()
-		checkErr(err, "Invalid patch file "+pfn)
-
-		log("    applying patch file\n")
-		err = ps.ApplyTo(pt)
-		checkErr(err, "Could not apply patch file "+pfn)
 
 		fbuf = pt.GetBytes()
 

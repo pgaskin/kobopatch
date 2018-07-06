@@ -15,6 +15,7 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - [X] Patch overrides to force enable/disable patches in a portable way.
 - [X] Patch consistency check
 - [X] Convert old patch zips
+- [X] Translation file support
 - [ ] Zlib support
 
 **Improvements/Goals:**
@@ -30,6 +31,7 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - Faster and lower memory consumption
 - No need for temp files
 - Save and restore lists of enabled patches
+- Translation file support
 - more (coming soon)
 - Zlib support (coming soon)
 

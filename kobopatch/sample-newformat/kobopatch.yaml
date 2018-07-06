@@ -32,3 +32,11 @@ overrides:
   libadobe.so.yaml:
   libnickel.so.1.0.0.yaml:
   librmsdk.so.1.0.0.yaml:
+
+## TRANSLATIONS ##
+# Optional, use only if lrelease is not in PATH and if translations are needed
+# lrelease: /path/to/lrelease
+
+# Uncomment the following to add translations (replace lc with the language code)
+# translations:
+#   src/whatever.ts: usr/local/Kobo/translations/trans_lc.qm

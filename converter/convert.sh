@@ -62,6 +62,14 @@ overrides:
   src/libadobe.so.patch:
   src/libnickel.so.1.0.0.patch:
   src/librmsdk.so.1.0.0.patch:
+
+## TRANSLATIONS ##
+# Optional, use only if lrelease is not in PATH and if translations are needed
+# lrelease: /path/to/lrelease
+
+# Uncomment the following to add translations (replace lc with the language code)
+# translations:
+#   src/whatever.ts: usr/local/Kobo/translations/trans_lc.qm
 EOF
     unix2dos "tmp/$kbn/kobopatch.yaml"
     cat <<'EOF' > "tmp/$kbn/kobopatch.sh"
@@ -119,6 +127,12 @@ Make sure your kobo is already running the firmware version you are trying to pa
 === To revert the patches: ===
 1. Disable all patches.
 2. Repeat steps 3-4 above.
+
+=== Translations ===
+kobopatch also supports compiling and adding ts files. lrelease should be in your PATH, or the path
+should be specified in kobopatch.yaml.
+
+This feature is not heavily tested.
 
 === To report bugs: ===
 Open an issue on https://github.com/geek1011/kobopatch/issues, or respond to the thread on MobileRead.

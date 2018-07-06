@@ -27,44 +27,44 @@ Demo Patch Name:
   - FindBaseAddressHex: "00 f3 cc 21" # Use FindBaseAddressHex if using only hex (the other one may cause issues due to the way go encodes strings)
   
   - ReplaceString:
-    Offset: 0x0 # You can also use a number
-    Find: "asd"
-    Replace: "fgh"
+      Offset: 0x0 # You can also use a number
+      Find: "asd"
+      Replace: "fgh"
 
   # You can also write instructions in one line
   - ReplaceString: {Offset: 0x0, Find: "asd", Replace: "fgh"}
 
   # NEW: The FindReplaceString function combines FindBaseAddress and ReplaceString.
   - FindReplaceString:
-    Find: "asd" # This does FindBaseAddress and is also the Find for ReplaceString
-    Replace: "fgh" # Must be the same length or shorter than Find just like in ReplaceString.
+      Find: "asd" # This does FindBaseAddress and is also the Find for ReplaceString
+      Replace: "fgh" # Must be the same length or shorter than Find just like in ReplaceString.
   
   - ReplaceInt:
-    Offset: 0x0
-    Find: 5 # You can also use a hex (with the prefix 0x)
-    Replace: 10 # You can also use a hex (with the prefix 0x)
-  
+      Offset: 0x0
+      Find: 5 # You can also use a hex (with the prefix 0x)
+      Replace: 10 # You can also use a hex (with the prefix 0x)
+    
   - ReplaceInt: {Offset: 0x0, Find: 5, Replace: 10}
 
   - ReplaceFloat:
-    Offset: 0x0
-    Find: 1.23
-    Replace: 4.56
+      Offset: 0x0
+      Find: 1.23
+      Replace: 4.56
 
   - ReplaceFloat: {Offset: 0x0, Find: 1.23, Replace: 4.56}
   
   - ReplaceBytes:
-    Offset: 0x0
-    Find: [0xAA, 0xBB, 0xCC]
-    Replace: [0xDD, 0xEE, 0xFF]
+      Offset: 0x0
+      Find: [0xAA, 0xBB, 0xCC]
+      Replace: [0xDD, 0xEE, 0xFF]
 
   - ReplaceBytes: {Offset: 0x0, Find: [0xAA, 0xBB, 0xCC], Replace: [0xDD, 0xEE, 0xFF]}
 
   # Shorthand hex for ReplaceBytes:
   - ReplaceBytes:
-    Offset: 0x0
-    FindH: AA BB CC
-    ReplaceH: DD EE FF
+      Offset: 0x0
+      FindH: AA BB CC
+      ReplaceH: DD EE FF
 
   - ReplaceBytes: {Offset: 0x0, Find: AABBCC, Replace: DDEEFF}
 

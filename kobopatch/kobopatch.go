@@ -10,7 +10,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -25,13 +28,15 @@ import (
 var version = "unknown"
 
 type config struct {
-	Version     string                     `yaml:"version" json:"version"`
-	In          string                     `yaml:"in" json:"in"`
-	Out         string                     `yaml:"out" json:"out"`
-	Log         string                     `yaml:"log" json:"log"`
-	PatchFormat string                     `yaml:"patchFormat" json:"patchFormat"`
-	Patches     map[string]string          `yaml:"patches" json:"patches"`
-	Overrides   map[string]map[string]bool `yaml:"overrides" json:"overrides"`
+	Version      string                     `yaml:"version" json:"version"`
+	In           string                     `yaml:"in" json:"in"`
+	Out          string                     `yaml:"out" json:"out"`
+	Log          string                     `yaml:"log" json:"log"`
+	PatchFormat  string                     `yaml:"patchFormat" json:"patchFormat"`
+	Patches      map[string]string          `yaml:"patches" json:"patches"`
+	Overrides    map[string]map[string]bool `yaml:"overrides" json:"overrides"`
+	Lrelease     string                     `yaml:"lrelease" json:"lrelease"`
+	Translations map[string]string          `yaml:"translations" json:"translations"`
 }
 
 var log = func(format string, a ...interface{}) {}
@@ -212,6 +217,86 @@ func main() {
 		checkErr(err, "Could not write new file to patched KoboRoot.tgz")
 		if i != len(fbuf) {
 			checkErr(errors.New("could not write whole file"), "Could not write new file to patched KoboRoot.tgz")
+		}
+	}
+
+	if len(cfg.Translations) >= 1 {
+		log("looking for lrelease\n")
+		lr := cfg.Lrelease
+		var err error
+		if lr == "" {
+			lr, err = exec.LookPath("lrelease")
+			if lr == "" {
+				lr, err = exec.LookPath("lrelease")
+				if err != nil {
+					checkErr(err, "Could not find lrelease")
+				}
+			}
+		}
+		lr, err = exec.LookPath(lr)
+		if err != nil {
+			checkErr(err, "Could not find lrelease")
+		}
+
+		log("processing translations")
+		fmt.Printf("Processing translations\n")
+		for ts, qm := range cfg.Translations {
+			fmt.Printf("  Processing %s\n", ts)
+
+			log("    %s -> %s\n", ts, qm)
+			if !strings.HasPrefix(qm, "usr/local/Kobo/translations/") {
+				err = errors.New("output for translation must start with usr/local/Kobo/translations/")
+				checkErr(err, "Could not process translation")
+			}
+
+			log("    creating temp dir for lrelease\n")
+			td, err := ioutil.TempDir(os.TempDir(), "lrelease-qm")
+			if err != nil {
+				checkErr(err, "Could not make temp dir for lrelease")
+			}
+
+			tf := filepath.Join(td, "out.qm")
+
+			cmd := exec.Command(lr, ts, "-qm", tf)
+			outbuf := bytes.NewBuffer(nil)
+			errbuf := bytes.NewBuffer(nil)
+			cmd.Stdout = outbuf
+			cmd.Stderr = errbuf
+
+			err = cmd.Run()
+			log("    lrelease stdout:\n")
+			log(outbuf.String())
+			log("    lrelease stderr:\n")
+			log(errbuf.String())
+			if err != nil {
+				fmt.Println(errbuf.String())
+				os.RemoveAll(td)
+				checkErr(err, "error running lrelease")
+			}
+
+			buf, err := ioutil.ReadFile(tf)
+			checkErr(err, "Could not read generated qm file")
+			os.RemoveAll(td)
+
+			err = outtw.WriteHeader(&tar.Header{
+				Typeflag: tar.TypeReg,
+				Name:     "./" + qm,
+				Mode:     0777,
+				Uid:      0,
+				Gid:      0,
+				ModTime:  time.Now(),
+				Size:     int64(len(buf)),
+			})
+			checkErr(err, "Could not write new header for translation to patched KoboRoot.tgz")
+
+			log("    writing qm to output\n")
+			i, err := outtw.Write(buf)
+			checkErr(err, "Could not write qm to patched KoboRoot.tgz")
+			if i != len(buf) {
+				checkErr(errors.New("could not write whole file"), "Could not write new file to patched KoboRoot.tgz")
+			}
+
+			os.RemoveAll(td)
 		}
 	}
 

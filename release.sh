@@ -42,7 +42,7 @@ wget "https://github.com/bblfsh/client-scala/releases/download/v1.5.2/osxcross_3
 export "PATH=$PWD/osxcross/bin:$PATH"
 sudo dpkg --add-architecture i386
 sudo apt update
-sudo apt install -y gcc-multilib gcc-mingw-w64-i686 zlib1g-dev:i386 gcc-arm-linux-gnueabihf clang libc6-dev-i386
+sudo apt install -y gcc gcc-multilib gcc-mingw-w64-i686 zlib1g-dev:i386 gcc-arm-linux-gnueabihf clang libc6-dev-i386
 wget http://mirrors.kernel.org/ubuntu/pool/universe/libz/libz-mingw-w64/libz-mingw-w64_1.2.8+dfsg-2_all.deb
 wget http://mirrors.kernel.org/ubuntu/pool/universe/libz/libz-mingw-w64/libz-mingw-w64-dev_1.2.8+dfsg-2_all.deb
 sudo dpkg -i *.deb

@@ -13,6 +13,7 @@ func main() {
 	if len(os.Args) != 2 {
 		fmt.Fprintln(os.Stderr, "cssextract extracts zlib-compressed from a binary file")
 		fmt.Fprintln(os.Stderr, "Usage: cssextract BINARY_FILE")
+		os.Exit(1)
 	}
 
 	buf, err := ioutil.ReadFile(os.Args[1])

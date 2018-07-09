@@ -15,6 +15,12 @@ import (
 )
 
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Fprintln(os.Stderr, "p32lsb2kobopatch is an experimental tool to convert patch32lsb style patches to kobopatch ones. It currently does not work with the old-style zlib patches.")
+		fmt.Fprintln(os.Stderr, "Usage: p32lsb2kobopatch PATCH_FILE > OUTPUT_FILE.yaml")
+		os.Exit(1)
+	}
+
 	ibuf, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
 		panic(err)
@@ -96,6 +102,18 @@ func main() {
 					fmt.Printf("  - ReplaceString:\n      Offset: %d\n      Find: %s\n      Replace: %s\n", (*inst.ReplaceString).Offset, escapeString((*inst.ReplaceString).Find), escapeString((*inst.ReplaceString).Replace))
 				} else {
 					fmt.Printf("  - ReplaceString: {Offset: %d, Find: %s, Replace: %s}\n", (*inst.ReplaceString).Offset, escapeString((*inst.ReplaceString).Find), escapeString((*inst.ReplaceString).Replace))
+				}
+			case inst.FindZlib != nil:
+				fmt.Printf("  - FindZlib: %s\n", escapeString(*inst.FindZlib))
+				continue
+			case inst.FindZlibHash != nil:
+				fmt.Printf("  - FindZlibHash: %s\n", escapeString(*inst.FindZlibHash))
+				continue
+			case inst.ReplaceZlib != nil:
+				if len((*inst.ReplaceZlib).Find) > 60 || len((*inst.ReplaceZlib).Replace) > 60 {
+					fmt.Printf("  - ReplaceZlib:\n      Offset: %d\n      Find: %s\n      Replace: %s\n", (*inst.ReplaceZlib).Offset, escapeString((*inst.ReplaceZlib).Find), escapeString((*inst.ReplaceZlib).Replace))
+				} else {
+					fmt.Printf("  - ReplaceZlib: {Offset: %d, Find: %s, Replace: %s}\n", (*inst.ReplaceZlib).Offset, escapeString((*inst.ReplaceZlib).Find), escapeString((*inst.ReplaceZlib).Replace))
 				}
 			default:
 				continue

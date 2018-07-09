@@ -119,6 +119,12 @@ func main() {
 				} else {
 					fmt.Printf("  - ReplaceZlib: {Offset: %d, Find: %s, Replace: %s}\n", (*inst.ReplaceZlib).Offset, escapeString((*inst.ReplaceZlib).Find), escapeString((*inst.ReplaceZlib).Replace))
 				}
+			case inst.FindReplaceString != nil:
+				if len((*inst.FindReplaceString).Find) > 60 || len((*inst.FindReplaceString).Replace) > 60 {
+					fmt.Printf("  - FindReplaceString:\n      Find: %s\n      Replace: %s\n", escapeString((*inst.FindReplaceString).Find), escapeString((*inst.FindReplaceString).Replace))
+				} else {
+					fmt.Printf("  - FindReplaceString: {Find: %s, Replace: %s}\n", escapeString((*inst.FindReplaceString).Find), escapeString((*inst.FindReplaceString).Replace))
+				}
 			default:
 				continue
 			}

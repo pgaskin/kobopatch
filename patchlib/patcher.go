@@ -110,9 +110,9 @@ func (p *Patcher) FindZlib(find string) error {
 			continue
 		}
 		// Handle minification from below
-		zi.CSS = strings.Replace(zi.CSS, "\n ", "\n", -1)
-		zi.CSS = strings.Replace(zi.CSS, "\n  ", "\n", -1)
 		zi.CSS = strings.Replace(zi.CSS, "\n    ", "\n", -1)
+		zi.CSS = strings.Replace(zi.CSS, "\n  ", "\n", -1)
+		zi.CSS = strings.Replace(zi.CSS, "\n ", "\n", -1)
 		findm := strings.Replace(find, "\n  ", "\n", -1)
 		findm = strings.Replace(find, "\n ", "\n", -1)
 		findm = strings.Replace(findm, "\n    ", "\n", -1)
@@ -199,9 +199,9 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 		return errors.New("ReplaceZlib: sanity check failed: recompressed original data does not match original (this is a bug, so please report it)")
 	}
 	if !bytes.Contains(dbuf, []byte(find)) {
-		find = strings.Replace(find, "\n ", "\n", -1)
-		find = strings.Replace(find, "\n  ", "\n", -1)
 		find = strings.Replace(find, "\n    ", "\n", -1)
+		find = strings.Replace(find, "\n  ", "\n", -1)
+		find = strings.Replace(find, "\n ", "\n", -1)
 		if !bytes.Contains(dbuf, []byte(find)) {
 			find = strings.Replace(find, ": ", ":", -1)
 			find = strings.Replace(find, " {", "{", -1)
@@ -222,9 +222,9 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 	}
 	if len(nbuf) > len(tbuf) {
 		// Attempt to remove indentation to save space
-		dbuf = bytes.Replace(dbuf, []byte("\n "), []byte("\n"), -1)
-		dbuf = bytes.Replace(dbuf, []byte("\n  "), []byte("\n"), -1)
 		dbuf = bytes.Replace(dbuf, []byte("\n     "), []byte("\n"), -1)
+		dbuf = bytes.Replace(dbuf, []byte("\n  "), []byte("\n"), -1)
+		dbuf = bytes.Replace(dbuf, []byte("\n "), []byte("\n"), -1)
 		nbuf = compress(dbuf)
 	}
 	if len(nbuf) > len(tbuf) {

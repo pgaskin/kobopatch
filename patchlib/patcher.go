@@ -169,6 +169,23 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 		return errors.New("ReplaceZlib: error compressing new data (this is a bug, so please report it)")
 	}
 	if len(nbuf) > len(tbuf) {
+		// Attempt to remove indentation to save space
+		dbuf = bytes.Replace(dbuf, []byte("\n  "), []byte("\n"), -1)
+		dbuf = bytes.Replace(dbuf, []byte("\n    "), []byte("\n"), -1)
+		dbuf = bytes.Replace(dbuf, []byte("\n     "), []byte("\n"), -1)
+		nbuf = compress(dbuf)
+	}
+	if len(nbuf) > len(tbuf) {
+		// Attempt to remove spaces after colons to save space
+		dbuf = bytes.Replace(dbuf, []byte(": "), []byte(":"), -1)
+		nbuf = compress(dbuf)
+	}
+	if len(nbuf) > len(tbuf) {
+		// Attempt to remove newlines to save space
+		dbuf = bytes.Replace(dbuf, []byte("\n"), []byte(""), -1)
+		nbuf = compress(dbuf)
+	}
+	if len(nbuf) > len(tbuf) {
 		return errors.Errorf("ReplaceZlib: new compressed data is %d bytes longer than old data (try removing whitespace or unnecessary css)", len(nbuf)-len(tbuf))
 	}
 	copy(p.buf[p.cur+offset:p.cur+offset+int32(len(tbuf))], nbuf)

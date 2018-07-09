@@ -441,7 +441,10 @@ func (ps *PatchSet) SetEnabled(patch string, enabled bool) error {
 		}
 		return errors.Errorf("could not set enabled state of '%s' to %t: no Enabled instruction in patch", patch, enabled)
 	}
-	return errors.Errorf("could not set enabled state of '%s' to %t: no such patch", patch, enabled)
+	if enabled {
+		return errors.Errorf("could not set enabled state of '%s' to %t: no such patch", patch, enabled)
+	}
+	return nil
 }
 
 func unescape(str string) (string, error) {

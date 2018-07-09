@@ -113,7 +113,8 @@ func TestZlib(t *testing.T) {
 	nerr(t, p.FindZlibHash("cc9d7ce57f8746517ea692b7c65e9ed74c1d765b"))
 	eq(t, p.cur, int32(4563746), "FindZlibHash should return correct offset")
 
-	nerr(t, p.ReplaceZlib(0, "qproperty-visible:true;", "qproperty-visible: a long value;"))
+	nerr(t, p.ReplaceZlib(0, "qproperty-visible: true;", "qproperty-visible: ALongString;")) // should also find string due to accomodations for minification.
+	nerr(t, p.ReplaceZlib(0, "qproperty-visible: ALongString;", "qproperty-visible: true;"))
 
 	p.ResetBaseAddress()
 	err(t, p.ReplaceZlib(0, " ", " ")) // not a zlib stream

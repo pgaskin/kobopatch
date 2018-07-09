@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "PwJnJyC5BAh8DhFnrq+0b7LMLtk=",
+			"path": "github.com/DataDog/czlib",
+			"revision": "4bc9a24e37f22da5be3ab6986fe9ea21b3b1573a",
+			"revisionTime": "2016-08-11T16:47:12Z"
+		},
+		{
 			"checksumSHA1": "CSPbwbyzqA6sfORicn4HFtIhF/c=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "8991bc29aa16c548c550c7ff78260e27b9ab7c73",

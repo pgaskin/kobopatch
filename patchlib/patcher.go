@@ -3,9 +3,16 @@ package patchlib
 
 import (
 	"bytes"
+	"compress/zlib"
+	"crypto/sha1"
 	"encoding/binary"
-	"errors"
 	"fmt"
+	"io/ioutil"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/DataDog/czlib"
+	"github.com/pkg/errors"
 )
 
 // Patcher applies patches to a byte array. All operations are done starting from cur.
@@ -46,13 +53,11 @@ func (p *Patcher) FindBaseAddress(find []byte) error {
 	if len(find) > len(p.buf) {
 		return errors.New("FindBaseAddress: length of bytes to find greater than buf")
 	}
-
 	i := bytes.Index(p.buf, find)
 	if i < 0 {
 		return errors.New("FindBaseAddress: could not find bytes")
 	}
 	p.cur = int32(i)
-
 	return nil
 }
 
@@ -84,6 +89,129 @@ func (p *Patcher) ReplaceInt(offset int32, find, replace uint8) error {
 // ReplaceFloat replaces the first occurrence of a float.
 func (p *Patcher) ReplaceFloat(offset int32, find, replace float64) error {
 	return wrapErrIfNotNil("ReplaceFloat", p.replaceValue(offset, find, replace))
+}
+
+// FindZlib finds the base address of a zlib css stream based on a substring (not sensitive to whitespace).
+func (p *Patcher) FindZlib(find string) error {
+	if len(find) > len(p.buf) {
+		return errors.New("FindZlib: length of string to find greater than buf")
+	}
+	z, err := p.ExtractZlib()
+	if err != nil {
+		return errors.Wrap(err, "FindZlib: could not extract zlib streams")
+	}
+	var i int32
+	for offset, css := range z {
+		if strings.Contains(css, find) || strings.Contains(stripWhitespace(css), stripWhitespace(find)) {
+			if i != 0 {
+				return errors.New("FindZlib: substring to find is not unique")
+			}
+			i = offset
+		}
+	}
+	if i == 0 {
+		return errors.New("FindZlib: could not find string")
+	}
+	p.cur = i
+	return nil
+}
+
+// FindZlibHash finds the base address of a zlib css stream based on it's SHA1 hash (can be found using the cssextract tool).
+func (p *Patcher) FindZlibHash(hash string) error {
+	if len(hash) != 40 {
+		return errors.New("FindZlib: invalid hash")
+	}
+	z, err := p.ExtractZlib()
+	if err != nil {
+		return errors.Wrap(err, "FindZlib: could not extract zlib streams")
+	}
+	f := false
+	for offset, css := range z {
+		if fmt.Sprintf("%x", sha1.Sum([]byte(css))) == stripWhitespace(hash) {
+			p.cur = offset
+			f = true
+			break
+		}
+	}
+	if !f {
+		return errors.New("FindZlib: could not find hash")
+	}
+	return nil
+}
+
+// ReplaceZlib replaces a part of a zlib css stream at the current offset.
+func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
+	if !bytes.HasPrefix(p.buf[p.cur+offset:p.cur+offset+2], []byte{0x78, 0x9c}) {
+		return errors.New("ReplaceZlib: not a zlib stream")
+	}
+	r, err := zlib.NewReader(bytes.NewReader(p.buf[p.cur+offset:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
+	if err != nil {
+		return errors.Wrap(err, "ReplaceZlib: could not initialize zlib reader")
+	}
+	dbuf, err := ioutil.ReadAll(r)
+	r.Close()
+	if err != nil && !strings.Contains(err.Error(), "corrupt input") && !strings.Contains(err.Error(), "invalid checksum") {
+		return errors.Wrap(err, "ReplaceZlib: could not decompress stream")
+	}
+	if len(dbuf) == 0 || !utf8.Valid(dbuf) {
+		return errors.New("ReplaceZlib: not a valid zlib stream")
+	}
+	tbuf := compress(dbuf)
+	if !bytes.HasPrefix(p.buf[p.cur+offset:], tbuf) || len(tbuf) < 4 {
+		return errors.New("ReplaceZlib: sanity check failed: recompressed original data does not match original (this is a bug, so please report it)")
+	}
+	if !bytes.Contains(dbuf, []byte(find)) {
+		return errors.New("ReplaceZlib: find string not found in stream")
+	}
+	dbuf = bytes.Replace(dbuf, []byte(find), []byte(replace), -1)
+	nbuf := compress(dbuf)
+	if len(nbuf) == 0 {
+		return errors.New("ReplaceZlib: error compressing new data (this is a bug, so please report it)")
+	}
+	if len(nbuf) > len(tbuf) {
+		return errors.Errorf("ReplaceZlib: new compressed data is %d bytes longer than old data (try removing whitespace or unnecessary css)", len(nbuf)-len(tbuf))
+	}
+	copy(p.buf[p.cur+offset:p.cur+offset+int32(len(tbuf))], nbuf)
+	r, err = zlib.NewReader(bytes.NewReader(p.buf[p.cur+offset:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
+	if err != nil {
+		return errors.Wrap(err, "ReplaceZlib: could not initialize zlib reader")
+	}
+	ndbuf, err := ioutil.ReadAll(r)
+	r.Close()
+	if !bytes.Equal(dbuf, ndbuf) {
+		return errors.New("ReplaceZlib: decompressed new data does not match new data (this is a bug, so please report it)")
+	}
+	return nil
+}
+
+// ExtractZlib extracts all CSS zlib streams. It returns it as a map of offsets and strings.
+func (p *Patcher) ExtractZlib() (map[int32]string, error) {
+	zlibs := map[int32]string{}
+	for i := 0; i < len(p.buf)-2; i++ {
+		if bytes.HasPrefix(p.buf[i:i+2], []byte{0x78, 0x9c}) {
+			r, err := zlib.NewReader(bytes.NewReader(p.buf[i:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
+			if err != nil {
+				return zlibs, errors.Wrap(err, "could not initialize zlib reader")
+			}
+			dbuf, err := ioutil.ReadAll(r)
+			r.Close()
+			if err != nil && !strings.Contains(err.Error(), "corrupt input") && !strings.Contains(err.Error(), "invalid checksum") {
+				return zlibs, errors.Wrap(err, "could not decompress stream")
+			}
+			if len(dbuf) == 0 || !utf8.Valid(dbuf) {
+				continue
+			}
+			if !isCSS(string(dbuf)) {
+				continue
+			}
+			tbuf := compress(dbuf)
+			if !bytes.HasPrefix(p.buf[i:], tbuf) || len(tbuf) < 4 {
+				return zlibs, errors.New("sanity check failed: recompressed data does not match original (this is a bug, so please report it)")
+			}
+			zlibs[int32(i)] = string(dbuf)
+		}
+	}
+	return zlibs, nil
 }
 
 // replaceValue encodes find and replace as little-endian binary and replaces the first
@@ -141,4 +269,44 @@ func wrapErrIfNotNil(txt string, err error) error {
 		return fmt.Errorf("%s: %v", txt, err)
 	}
 	return nil
+}
+
+func isCSS(str string) bool {
+	cob, ccb, cco := strings.Count(str, "{"), strings.Count(str, "}"), strings.Count(str, ":")
+	if cob < 1 || ccb < 1 || cco < 1 {
+		return false
+	}
+	if cob != ccb || cob > cco {
+		return false
+	}
+	return true
+}
+
+// compress compresses data in a way compatible with python's zlib.
+// This uses czlib internally, as the std zlib produces different results.
+func compress(src []byte) []byte {
+	b, err := czlib.Compress(src) // Need to use czlib to keep header correct
+	if err != nil {
+		panic(err)
+	}
+	d, err := decompress(b)
+	if err != nil {
+		panic(err)
+	}
+	if !bytes.Equal(d, src) {
+		panic("compressed and decompressed data not equal")
+	}
+	return b
+}
+
+func decompress(src []byte) ([]byte, error) {
+	return czlib.Decompress(src)
+}
+
+func stripWhitespace(src string) string {
+	src = strings.Replace(src, " ", "", -1)
+	src = strings.Replace(src, "\t", "", -1)
+	src = strings.Replace(src, "\n", "", -1)
+	src = strings.Replace(src, "\r", "", -1)
+	return src
 }

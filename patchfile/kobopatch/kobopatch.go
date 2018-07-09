@@ -22,6 +22,8 @@ type instruction struct {
 	BaseAddress           *int32  `yaml:"BaseAddress,omitempty"`
 	FindBaseAddressHex    *string `yaml:"FindBaseAddressHex,omitempty"`
 	FindBaseAddressString *string `yaml:"FindBaseAddressString,omitempty"`
+	FindZlib              *string `yaml:"FindZlib,omitempty"`
+	FindZlibHash          *string `yaml:"FindZlib,omitempty"`
 	FindReplaceString     *struct {
 		Find    string `yaml:"Find,omitempty"`
 		Replace string `yaml:"Replace,omitempty"`
@@ -48,6 +50,11 @@ type instruction struct {
 		Find     []byte  `yaml:"Find,omitempty"`
 		Replace  []byte  `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceBytes,omitempty"`
+	ReplaceZlib *struct {
+		Offset  int32  `yaml:"Offset,omitempty"`
+		Find    string `yaml:"Find,omitempty"`
+		Replace string `yaml:"Replace,omitempty"`
+	} `yaml:"ReplaceZlib,omitempty"`
 }
 
 // Parse parses a PatchSet from a buf.
@@ -152,6 +159,21 @@ func (ps *PatchSet) Validate() error {
 				roc++
 			}
 			if i.FindReplaceString != nil {
+				ic++
+				roc++
+			}
+			if i.FindZlib != nil {
+				ic++
+				roc++
+			}
+			if i.FindZlibHash != nil {
+				ic++
+				roc++
+				if len(*i.FindZlibHash) != 40 {
+					return errors.Errorf("hash must be 40 chars in FindZlibHash in `%s`", n)
+				}
+			}
+			if i.ReplaceZlib != nil {
 				ic++
 				roc++
 			}
@@ -278,6 +300,16 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 					err = errors.Wrap(err, "FindReplaceString")
 					break
 				}
+			case i.FindZlib != nil:
+				patchfile.Log("  FindZlib(%#v) | hex:%x\n", *i.FindZlib, []byte(*i.FindZlib))
+				err = pt.FindZlib(*i.FindZlib)
+			case i.FindZlibHash != nil:
+				patchfile.Log("  FindZlibHash(%#v) | hex:%x\n", *i.FindZlibHash, []byte(*i.FindZlibHash))
+				err = pt.FindZlibHash(*i.FindZlibHash)
+			case i.ReplaceZlib != nil:
+				r := *i.ReplaceZlib
+				patchfile.Log("  ReplaceZlib(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				err = pt.ReplaceZlib(r.Offset, r.Find, r.Replace)
 			default:
 				patchfile.Log("  invalid instruction: %#v\n", i)
 				err = errors.Errorf("invalid instruction: %#v", i)

@@ -23,6 +23,8 @@ type instruction struct {
 	BaseAddress     *int32
 	Comment         *string
 	FindBaseAddress *string
+	FindZlib        *string
+	FindZlibHash    *string
 	ReplaceBytes    *struct {
 		Offset  int32
 		Find    []byte
@@ -39,6 +41,11 @@ type instruction struct {
 		Replace uint8
 	}
 	ReplaceString *struct {
+		Offset  int32
+		Find    string
+		Replace string
+	}
+	ReplaceZlib *struct {
 		Offset  int32
 		Find    string
 		Replace string
@@ -200,6 +207,51 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 					Find    string
 					Replace string
 				}{Offset: offset, Find: find, Replace: replace}})
+			case "find_zlib":
+				str, err := unescape(spl[1])
+				if err != nil {
+					return nil, errors.Wrapf(err, "line %d: find_zlib malformed", i+1)
+				}
+				curPatch = append(curPatch, instruction{FindZlib: &str})
+			case "find_zlib_hash":
+				str, err := unescape(spl[1])
+				if err != nil {
+					return nil, errors.Wrapf(err, "line %d: find_zlib_hash malformed", i+1)
+				}
+				curPatch = append(curPatch, instruction{FindZlibHash: &str})
+			case "replace_zlib":
+				ab := strings.SplitN(spl[1], ", ", 2)
+				if len(ab) != 2 {
+					return nil, errors.Errorf("line %d: replace_zlib malformed", i+1)
+				}
+				var offset int32
+				if len(ab[0]) == 8 {
+					// ugly hack to fix negative offsets
+					ab[0] = strings.Replace(ab[0], "FFFFFF", "-", 1)
+				}
+				_, err := fmt.Sscanf(ab[0], "%x", &offset)
+				if err != nil {
+					return nil, errors.Wrapf(err, "line %d: replace_zlib offset malformed", i+1)
+				}
+				var find, replace, leftover string
+				leftover = ab[1]
+				find, leftover, err = unescapeFirst(leftover)
+				if err != nil {
+					return nil, errors.Wrapf(err, "line %d: replace_zlib find malformed", i+1)
+				}
+				leftover = strings.TrimLeft(leftover, ", ")
+				replace, leftover, err = unescapeFirst(leftover)
+				if err != nil {
+					return nil, errors.Wrapf(err, "line %d: replace_zlib replace malformed", i+1)
+				}
+				if leftover != "" {
+					return nil, errors.Errorf("line %d: replace_zlib malformed: extraneous characters after last argument", i+1)
+				}
+				curPatch = append(curPatch, instruction{ReplaceZlib: &struct {
+					Offset  int32
+					Find    string
+					Replace string
+				}{Offset: offset, Find: find, Replace: replace}})
 			default:
 				return nil, errors.Errorf("line %d: unexpected instruction: %s", i+1, spl[0])
 			}
@@ -250,6 +302,18 @@ func (ps *PatchSet) Validate() error {
 				ic++
 			}
 			if i.ReplaceString != nil {
+				ic++
+			}
+			if i.FindZlib != nil {
+				ic++
+			}
+			if i.FindZlibHash != nil {
+				ic++
+				if len(*i.FindZlibHash) != 40 {
+					return errors.Errorf("hash must be 40 chars in FindZlibHash in `%s`", n)
+				}
+			}
+			if i.ReplaceZlib != nil {
 				ic++
 			}
 			if ic != 1 {
@@ -337,6 +401,16 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				r := *i.ReplaceString
 				patchfile.Log("  ReplaceString(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceString(r.Offset, r.Find, r.Replace)
+			case i.FindZlib != nil:
+				patchfile.Log("  FindZlib(%#v) | hex:%x\n", *i.FindZlib, []byte(*i.FindZlib))
+				err = pt.FindZlib(*i.FindZlib)
+			case i.FindZlibHash != nil:
+				patchfile.Log("  FindZlibHash(%#v) | hex:%x\n", *i.FindZlibHash, []byte(*i.FindZlibHash))
+				err = pt.FindZlibHash(*i.FindZlibHash)
+			case i.ReplaceZlib != nil:
+				r := *i.ReplaceZlib
+				patchfile.Log("  ReplaceZlib(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				err = pt.ReplaceZlib(r.Offset, r.Find, r.Replace)
 			default:
 				patchfile.Log("  invalid instruction: %#v\n", i)
 				err = errors.Errorf("invalid instruction: %#v", i)

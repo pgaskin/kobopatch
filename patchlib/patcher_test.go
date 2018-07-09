@@ -1,11 +1,13 @@
 package patchlib
 
 import (
+	"crypto/sha1"
 	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"testing"
 )
 
@@ -76,6 +78,43 @@ func TestReplaceFloat(t *testing.T) {
 	nerr(t, p.ReplaceFloat(0, 1.05, 3.25))
 	err(t, p.ReplaceFloat(0, 1.05, 3.25))
 	eq(t, p.GetBytes(), []byte{0x00, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xa, 0x40, 0x05}, "unexpected output")
+}
+
+func TestZlib(t *testing.T) {
+	nickel, errr := ioutil.ReadFile("./testdata/nickel")
+	nerr(t, errr)
+	p := NewPatcher(nickel)
+
+	err(t, p.FindZlib("height"))
+
+	z, errr := p.ExtractZlib()
+	nerr(t, errr)
+	for _, d := range z {
+		if strings.Contains(d, "#boggleContainer[qApp_deviceIsPika=true]") {
+			eq(t, fmt.Sprintf("%x", sha1.Sum([]byte(d))), "1b80e45ffa47d77642b053205452a528d7b37c76", "should start with correct data hash")
+		}
+	}
+
+	nerr(t, p.FindZlib("#boggleContainer[qApp_deviceIsPika=true]"))
+	eq(t, p.cur, int32(4563746), "FindZlib should return correct offset")
+	nerr(t, p.ReplaceZlib(0, "qproperty-visible: false;", "qproperty-visible:true;"))
+	err(t, p.ReplaceZlib(0, "dfgdfgdfg", "dfgdfgdfg"))
+	err(t, p.ReplaceZlib(0, "false", "a really long string which is way too long to possibly fit asndkjas aksjndkajsnd kajsnjkwjnw akjnwr kejnskr fjsdndf ksjdndkf jsd"))
+
+	z, errr = p.ExtractZlib()
+	nerr(t, errr)
+	for _, d := range z {
+		if strings.Contains(d, "#boggleContainer[qApp_deviceIsPika=true]") {
+			eq(t, fmt.Sprintf("%x", sha1.Sum([]byte(d))), "cc9d7ce57f8746517ea692b7c65e9ed74c1d765b", "data should be intact and correctly changed")
+		}
+	}
+
+	p.ResetBaseAddress()
+	nerr(t, p.FindZlibHash("cc9d7ce57f8746517ea692b7c65e9ed74c1d765b"))
+	eq(t, p.cur, int32(4563746), "FindZlibHash should return correct offset")
+
+	p.ResetBaseAddress()
+	err(t, p.ReplaceZlib(0, " ", " "))
 }
 
 func TestAll(t *testing.T) {

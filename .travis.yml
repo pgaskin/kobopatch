@@ -2,17 +2,6 @@ language: go
 go: 
  - "1.10"
 
-addons:
-  apt:
-    update: true
-    packages:
-      - gcc-7-multilib-i686-linux-gnu
-      - gcc-mingw-w64-i686
-      - zlib1g-dev:i386
-      - libz-mingw-w64-dev
-      - gcc-7-arm-linux-gnueabihf
-      - clang
-
 script:
  - make clean
  - make build-deps

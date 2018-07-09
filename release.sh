@@ -37,8 +37,12 @@ else
     echo "$(git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --oneline)" | tee -a build/release-notes.md
 fi
 
+echo "Installing toolchains"
 wget "https://github.com/bblfsh/client-scala/releases/download/v1.5.2/osxcross_3034f7149716d815bc473d0a7b35d17e4cf175aa.tar.gz" -O- | tar -xzf -
 export "PATH=$PWD/osxcross/bin:$PATH"
+sudo dpkg --add-architecture i386
+sudo apt update
+sudo apt install -y gcc-7-multilib-i686-linux-gnu gcc-mingw-w64-i686 zlib1g-dev:i386 libz-mingw-w64-dev gcc-7-arm-linux-gnueabihf clang
 
 make cross convert
 rm -rf osxcross

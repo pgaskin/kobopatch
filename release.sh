@@ -37,7 +37,11 @@ else
     echo "$(git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --oneline)" | tee -a build/release-notes.md
 fi
 
+wget "https://github.com/bblfsh/client-scala/releases/download/v1.5.2/osxcross_3034f7149716d815bc473d0a7b35d17e4cf175aa.tar.gz" -O- | tar -xzf -
+export "PATH=$PWD/osxcross/bin:$PATH"
+
 make cross convert
+rm -rf osxcross
 
 if [[ "$SKIP_UPLOAD" != "true" ]]; then
     echo "Creating release"
@@ -55,6 +59,18 @@ if [[ "$SKIP_UPLOAD" != "true" ]]; then
         --description "$(cat build/release-notes.md)"
 
     for f in build/kobop*;do 
+        fn="$(basename $f)"
+        echo "Uploading $fn"
+        GITHUB_TOKEN=$GITHUB_TOKEN github-release upload \
+            --user geek1011 \
+            --repo kobopatch \
+            --tag $APP_VERSION \
+            --name "$fn" \
+            --file "$f" \
+            --replace
+    done
+
+    for f in build/cssextract*;do 
         fn="$(basename $f)"
         echo "Uploading $fn"
         GITHUB_TOKEN=$GITHUB_TOKEN github-release upload \

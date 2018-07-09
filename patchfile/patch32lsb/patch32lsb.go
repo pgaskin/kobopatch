@@ -50,6 +50,10 @@ type instruction struct {
 		Find    string
 		Replace string
 	}
+	FindReplaceString *struct {
+		Find    string
+		Replace string
+	}
 }
 
 // Parse parses a PatchSet from a buf.
@@ -252,6 +256,25 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 					Find    string
 					Replace string
 				}{Offset: offset, Find: find, Replace: replace}})
+			case "find_replace_string":
+				var find, replace, leftover string
+				leftover = spl[1]
+				find, leftover, err := unescapeFirst(leftover)
+				if err != nil {
+					return nil, errors.Wrapf(err, "line %d: find_replace_string find malformed", i+1)
+				}
+				leftover = strings.TrimLeft(leftover, ", ")
+				replace, leftover, err = unescapeFirst(leftover)
+				if err != nil {
+					return nil, errors.Wrapf(err, "line %d: find_replace_string replace malformed", i+1)
+				}
+				if leftover != "" {
+					return nil, errors.Errorf("line %d: find_replace_string malformed: extraneous characters after last argument", i+1)
+				}
+				curPatch = append(curPatch, instruction{FindReplaceString: &struct {
+					Find    string
+					Replace string
+				}{Find: find, Replace: replace}})
 			default:
 				return nil, errors.Errorf("line %d: unexpected instruction: %s", i+1, spl[0])
 			}
@@ -314,6 +337,9 @@ func (ps *PatchSet) Validate() error {
 				}
 			}
 			if i.ReplaceZlib != nil {
+				ic++
+			}
+			if i.FindReplaceString != nil {
 				ic++
 			}
 			if ic != 1 {
@@ -411,6 +437,21 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				r := *i.ReplaceZlib
 				patchfile.Log("  ReplaceZlib(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceZlib(r.Offset, r.Find, r.Replace)
+			case i.FindReplaceString != nil:
+				r := *i.FindReplaceString
+				patchfile.Log("  FindReplaceString(%#v, %#v)\n", r.Find, r.Replace)
+				patchfile.Log("    FindBaseAddressString(%#v)\n", r.Find)
+				err = pt.FindBaseAddressString(r.Find)
+				if err != nil {
+					err = errors.Wrap(err, "FindReplaceString")
+					break
+				}
+				patchfile.Log("    ReplaceString(0, %#v, %#v)\n", r.Find, r.Replace)
+				err = pt.ReplaceString(0, r.Find, r.Replace)
+				if err != nil {
+					err = errors.Wrap(err, "FindReplaceString")
+					break
+				}
 			default:
 				patchfile.Log("  invalid instruction: %#v\n", i)
 				err = errors.Errorf("invalid instruction: %#v", i)

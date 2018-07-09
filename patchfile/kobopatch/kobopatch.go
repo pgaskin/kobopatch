@@ -23,7 +23,7 @@ type instruction struct {
 	FindBaseAddressHex    *string `yaml:"FindBaseAddressHex,omitempty"`
 	FindBaseAddressString *string `yaml:"FindBaseAddressString,omitempty"`
 	FindZlib              *string `yaml:"FindZlib,omitempty"`
-	FindZlibHash          *string `yaml:"FindZlib,omitempty"`
+	FindZlibHash          *string `yaml:"FindZlibHash,omitempty"`
 	FindReplaceString     *struct {
 		Find    string `yaml:"Find,omitempty"`
 		Replace string `yaml:"Replace,omitempty"`
@@ -262,7 +262,7 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				buf := []byte{}
 				_, err = fmt.Sscanf(strings.Replace(*i.FindBaseAddressHex, " ", "", -1), "%x\n", &buf)
 				if err != nil {
-					err = errors.Errorf("FindBaseAddresHex: invalid hex string")
+					err = errors.Errorf("FindBaseAddressHex: invalid hex string")
 					break
 				}
 				err = pt.FindBaseAddress(buf)

@@ -66,7 +66,11 @@ func main() {
 		}
 		if strings.TrimSpace(desc) != "" {
 			desc = wordwrap.WrapString(desc, 70)
-			fmt.Printf("  - Description: |\n%s\n", setIndent(desc, 6))
+			if len(desc) < 70 && strings.Count(strings.TrimSpace(setIndent(desc, 0)), "\n") < 1 {
+				fmt.Printf("  - Description: %s\n", escapeString(strings.TrimSpace(setIndent(desc, 0))))
+			} else {
+				fmt.Printf("  - Description: |\n%s\n", setIndent(desc, 6))
+			}
 		}
 
 		for i, inst := range instructions {

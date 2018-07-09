@@ -110,9 +110,11 @@ func (p *Patcher) FindZlib(find string) error {
 			continue
 		}
 		// Handle minification from below
+		zi.CSS = strings.Replace(zi.CSS, "\n ", "\n", -1)
 		zi.CSS = strings.Replace(zi.CSS, "\n  ", "\n", -1)
 		zi.CSS = strings.Replace(zi.CSS, "\n    ", "\n", -1)
 		findm := strings.Replace(find, "\n  ", "\n", -1)
+		findm = strings.Replace(find, "\n ", "\n", -1)
 		findm = strings.Replace(findm, "\n    ", "\n", -1)
 		if strings.Contains(zi.CSS, findm) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(findm)) {
 			if i != 0 {
@@ -122,7 +124,9 @@ func (p *Patcher) FindZlib(find string) error {
 			continue
 		}
 		zi.CSS = strings.Replace(zi.CSS, ": ", ":", -1)
+		zi.CSS = strings.Replace(zi.CSS, " {", "{", -1)
 		findm = strings.Replace(findm, ": ", ":", -1)
+		findm = strings.Replace(findm, " {", "{", -1)
 		if strings.Contains(zi.CSS, findm) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(findm)) {
 			if i != 0 {
 				return errors.New("FindZlib: substring to find is not unique")
@@ -131,7 +135,10 @@ func (p *Patcher) FindZlib(find string) error {
 			continue
 		}
 		zi.CSS = strings.Replace(zi.CSS, "\n", "", -1)
-		findm = strings.Replace(findm, "\n", "", -1)
+		zi.CSS = strings.Replace(zi.CSS, "{ ", "", -1)
+		zi.CSS = strings.Replace(zi.CSS, "; ", "", -1)
+		findm = strings.Replace(findm, "{ ", "{", -1)
+		findm = strings.Replace(findm, "; ", ";", -1)
 		if strings.Contains(zi.CSS, findm) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(findm)) {
 			if i != 0 {
 				return errors.New("FindZlib: substring to find is not unique")
@@ -192,14 +199,18 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 		return errors.New("ReplaceZlib: sanity check failed: recompressed original data does not match original (this is a bug, so please report it)")
 	}
 	if !bytes.Contains(dbuf, []byte(find)) {
+		find = strings.Replace(find, "\n ", "\n", -1)
 		find = strings.Replace(find, "\n  ", "\n", -1)
 		find = strings.Replace(find, "\n    ", "\n", -1)
 		if !bytes.Contains(dbuf, []byte(find)) {
 			find = strings.Replace(find, ": ", ":", -1)
+			find = strings.Replace(find, " {", "{", -1)
 			if !bytes.Contains(dbuf, []byte(find)) {
 				find = strings.Replace(find, "\n", "", -1)
+				find = strings.Replace(find, "; ", ";", -1)
+				find = strings.Replace(find, "{ ", "{", -1)
 				if !bytes.Contains(dbuf, []byte(find)) {
-					return errors.New("ReplaceZlib: find string not found in stream")
+					return errors.Errorf("ReplaceZlib: find string not found in stream (%s)", strings.Replace(find, "\n", "\\n", -1))
 				}
 			}
 		}
@@ -211,6 +222,7 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 	}
 	if len(nbuf) > len(tbuf) {
 		// Attempt to remove indentation to save space
+		dbuf = bytes.Replace(dbuf, []byte("\n "), []byte("\n"), -1)
 		dbuf = bytes.Replace(dbuf, []byte("\n  "), []byte("\n"), -1)
 		dbuf = bytes.Replace(dbuf, []byte("\n     "), []byte("\n"), -1)
 		nbuf = compress(dbuf)
@@ -218,11 +230,14 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 	if len(nbuf) > len(tbuf) {
 		// Attempt to remove spaces after colons to save space
 		dbuf = bytes.Replace(dbuf, []byte(": "), []byte(":"), -1)
+		dbuf = bytes.Replace(dbuf, []byte(" {"), []byte("{"), -1)
 		nbuf = compress(dbuf)
 	}
 	if len(nbuf) > len(tbuf) {
 		// Attempt to remove newlines to save space
 		dbuf = bytes.Replace(dbuf, []byte("\n"), []byte(""), -1)
+		dbuf = bytes.Replace(dbuf, []byte("; "), []byte(";"), -1)
+		dbuf = bytes.Replace(dbuf, []byte("{ "), []byte("{"), -1)
 		nbuf = compress(dbuf)
 	}
 	if len(nbuf) > len(tbuf) {

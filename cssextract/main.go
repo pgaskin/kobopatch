@@ -33,8 +33,8 @@ func main() {
 		panic(err)
 	}
 
-	for offset, css := range z {
-		fmt.Fprintf(f, "/* zlib stream: offset_hex(0x%X) offset_int32(%d) len_int32(%d) sha1(%x) */\n%s\n\n", offset, offset, len(css), sha1.Sum([]byte(css)), css)
+	for _, zi := range z {
+		fmt.Fprintf(f, "/* zlib stream: offset_hex(0x%X) offset_int32(%d) len_int32(%d) sha1(%x) */\n%s\n\n", zi.Offset, zi.Offset, len(zi.CSS), sha1.Sum([]byte(zi.CSS)), zi.CSS)
 	}
 
 	f.Close()

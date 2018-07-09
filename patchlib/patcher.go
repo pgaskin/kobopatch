@@ -101,12 +101,12 @@ func (p *Patcher) FindZlib(find string) error {
 		return errors.Wrap(err, "FindZlib: could not extract zlib streams")
 	}
 	var i int32
-	for offset, css := range z {
-		if strings.Contains(css, find) || strings.Contains(stripWhitespace(css), stripWhitespace(find)) {
+	for _, zi := range z {
+		if strings.Contains(zi.CSS, find) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(find)) {
 			if i != 0 {
 				return errors.New("FindZlib: substring to find is not unique")
 			}
-			i = offset
+			i = zi.Offset
 		}
 	}
 	if i == 0 {
@@ -126,9 +126,9 @@ func (p *Patcher) FindZlibHash(hash string) error {
 		return errors.Wrap(err, "FindZlib: could not extract zlib streams")
 	}
 	f := false
-	for offset, css := range z {
-		if fmt.Sprintf("%x", sha1.Sum([]byte(css))) == stripWhitespace(hash) {
-			p.cur = offset
+	for _, zi := range z {
+		if fmt.Sprintf("%x", sha1.Sum([]byte(zi.CSS))) == stripWhitespace(hash) {
+			p.cur = zi.Offset
 			f = true
 			break
 		}
@@ -184,9 +184,14 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 	return nil
 }
 
+type ZlibItem struct {
+	Offset int32
+	CSS    string
+}
+
 // ExtractZlib extracts all CSS zlib streams. It returns it as a map of offsets and strings.
-func (p *Patcher) ExtractZlib() (map[int32]string, error) {
-	zlibs := map[int32]string{}
+func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
+	zlibs := []ZlibItem{}
 	for i := 0; i < len(p.buf)-2; i++ {
 		if bytes.HasPrefix(p.buf[i:i+2], []byte{0x78, 0x9c}) {
 			r, err := zlib.NewReader(bytes.NewReader(p.buf[i:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
@@ -208,7 +213,7 @@ func (p *Patcher) ExtractZlib() (map[int32]string, error) {
 			if !bytes.HasPrefix(p.buf[i:], tbuf) || len(tbuf) < 4 {
 				return zlibs, errors.New("sanity check failed: recompressed data does not match original (this is a bug, so please report it)")
 			}
-			zlibs[int32(i)] = string(dbuf)
+			zlibs = append(zlibs, ZlibItem{int32(i), string(dbuf)})
 		}
 	}
 	return zlibs, nil

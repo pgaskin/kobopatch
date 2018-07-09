@@ -89,9 +89,9 @@ func TestZlib(t *testing.T) {
 
 	z, errr := p.ExtractZlib()
 	nerr(t, errr)
-	for _, d := range z {
-		if strings.Contains(d, "#boggleContainer[qApp_deviceIsPika=true]") {
-			eq(t, fmt.Sprintf("%x", sha1.Sum([]byte(d))), "1b80e45ffa47d77642b053205452a528d7b37c76", "should start with correct data hash")
+	for _, zi := range z {
+		if strings.Contains(zi.CSS, "#boggleContainer[qApp_deviceIsPika=true]") {
+			eq(t, fmt.Sprintf("%x", sha1.Sum([]byte(zi.CSS))), "1b80e45ffa47d77642b053205452a528d7b37c76", "should start with correct data hash")
 		}
 	}
 
@@ -103,9 +103,9 @@ func TestZlib(t *testing.T) {
 
 	z, errr = p.ExtractZlib()
 	nerr(t, errr)
-	for _, d := range z {
-		if strings.Contains(d, "#boggleContainer[qApp_deviceIsPika=true]") {
-			eq(t, fmt.Sprintf("%x", sha1.Sum([]byte(d))), "cc9d7ce57f8746517ea692b7c65e9ed74c1d765b", "data should be intact and correctly changed")
+	for _, zi := range z {
+		if strings.Contains(zi.CSS, "#boggleContainer[qApp_deviceIsPika=true]") {
+			eq(t, fmt.Sprintf("%x", sha1.Sum([]byte(zi.CSS))), "cc9d7ce57f8746517ea692b7c65e9ed74c1d765b", "data should be intact and correctly changed")
 		}
 	}
 

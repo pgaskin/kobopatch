@@ -28,7 +28,7 @@ for pf in src/*.zip; do
     cp ../build/kobop* "tmp/$kbn/bin/"
     echo "https://geek1011.github.io/KoboStuff/kobofirmware.html" > "tmp/$kbn/src/download_firmware_here.txt"
     cat <<EOF > "tmp/$kbn/kobopatch.yaml"
-## Works with kobopatch v0.6 or higher.
+## Works with kobopatch v0.7 or higher.
 ## You can update kobopatch by downloading the latest release from https://github.com/geek1011/kobopatch/releases. 
 version: $ver
 in: src/kobo-update-$ver.zip

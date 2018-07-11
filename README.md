@@ -1,4 +1,6 @@
 # kobopatch
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgeek1011%2Fkobopatch.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgeek1011%2Fkobopatch?ref=badge_shield)
+
 An improved patching system for Kobo eReaders. See https://www.mobileread.com/forums/showthread.php?t=297338 . Download patches for v4.9.11311+ [here](https://github.com/geek1011/kobopatch-patches/releases/latest).
 
 **Progress:**
@@ -40,3 +42,6 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 **Testing:**
 - Unit tests (automatically run by Travis CI): `go test -v ./...`
 - Real tests (compares original and new): rewrite coming soon, already done manually
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgeek1011%2Fkobopatch.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgeek1011%2Fkobopatch?ref=badge_large)

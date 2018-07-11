@@ -37,6 +37,7 @@ type config struct {
 	Overrides    map[string]map[string]bool `yaml:"overrides" json:"overrides"`
 	Lrelease     string                     `yaml:"lrelease" json:"lrelease"`
 	Translations map[string]string          `yaml:"translations" json:"translations"`
+	Files        map[string]string          `yaml:"files" json:"files"`
 }
 
 var log = func(format string, a ...interface{}) {}
@@ -297,6 +298,41 @@ func main() {
 			}
 
 			os.RemoveAll(td)
+		}
+	}
+
+	if len(cfg.Files) >= 1 {
+		log("adding additional files")
+		fmt.Printf("Adding additional files\n")
+		for src, dest := range cfg.Files {
+			fmt.Printf("  Processing %s\n", src)
+
+			log("    %s -> %s\n", src, dest)
+			if strings.HasPrefix(dest, "/") {
+				err = errors.New("output for custom file must not start with a slash")
+				checkErr(err, "Could not process additional file")
+			}
+
+			buf, err := ioutil.ReadFile(src)
+			checkErr(err, "Could not read additional file '"+src+"'")
+
+			err = outtw.WriteHeader(&tar.Header{
+				Typeflag: tar.TypeReg,
+				Name:     "./" + dest,
+				Mode:     0777,
+				Uid:      0,
+				Gid:      0,
+				ModTime:  time.Now(),
+				Size:     int64(len(buf)),
+			})
+			checkErr(err, "Could not write new header for additional file to patched KoboRoot.tgz")
+
+			log("    writing qm to output\n")
+			i, err := outtw.Write(buf)
+			checkErr(err, "Could not write additional file to patched KoboRoot.tgz")
+			if i != len(buf) {
+				checkErr(errors.New("could not write whole file"), "Could not write new file to patched KoboRoot.tgz")
+			}
 		}
 	}
 

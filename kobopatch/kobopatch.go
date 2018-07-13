@@ -46,10 +46,27 @@ func main() {
 	fmt.Printf("kobopatch %s\n", version)
 	fmt.Printf("https://github.com/geek1011/kobopatch\n\n")
 
-	fmt.Printf("Reading config file (kobopatch.yaml)\n")
+	var cfgbuf []byte
+	var err error
+	args := os.Args[1:]
+	fmt.Printf("length of args = %d\n", len(args))
+	if len(args) > 0 {
+		cfgfile := args[0]
+		if cfgfile == "-" {
+			fmt.Printf("Reading config file from stdin\n")
+			cfgbuf, err = ioutil.ReadAll(os.Stdin)
+			checkErr(err, "Could not read kobopatch.yaml from stdin")
+		} else {
+			fmt.Printf("Reading config file from %s\n", args[0])
+			cfgbuf, err = ioutil.ReadFile(args[0])
+			checkErr(err, "Could not read kobopatch.yaml from argument")
+		}
+	} else {
+		fmt.Printf("Reading config file (kobopatch.yaml)\n")
+		cfgbuf, err = ioutil.ReadFile("./kobopatch.yaml")
+		checkErr(err, "Could not read kobopatch.yaml")
+	}
 
-	cfgbuf, err := ioutil.ReadFile("./kobopatch.yaml")
-	checkErr(err, "Could not read kobopatch.yaml")
 
 	cfg := &config{}
 	err = yaml.UnmarshalStrict(cfgbuf, &cfg)

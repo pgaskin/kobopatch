@@ -48,17 +48,15 @@ func main() {
 
 	var cfgbuf []byte
 	var err error
-	args := os.Args[1:]
-	fmt.Printf("length of args = %d\n", len(args))
-	if len(args) > 0 {
-		cfgfile := args[0]
+	if len(os.Args) > 1 {
+		cfgfile := os.Args[1]
 		if cfgfile == "-" {
 			fmt.Printf("Reading config file from stdin\n")
 			cfgbuf, err = ioutil.ReadAll(os.Stdin)
 			checkErr(err, "Could not read kobopatch.yaml from stdin")
 		} else {
-			fmt.Printf("Reading config file from %s\n", args[0])
-			cfgbuf, err = ioutil.ReadFile(args[0])
+			fmt.Printf("Reading config file from %s\n", cfgfile)
+			cfgbuf, err = ioutil.ReadFile(cfgfile)
 			checkErr(err, "Could not read kobopatch.yaml from argument")
 		}
 	} else {

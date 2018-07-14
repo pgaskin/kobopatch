@@ -46,10 +46,30 @@ func main() {
 	fmt.Printf("kobopatch %s\n", version)
 	fmt.Printf("https://github.com/geek1011/kobopatch\n\n")
 
-	fmt.Printf("Reading config file (kobopatch.yaml)\n")
+	outBase := ""
 
-	cfgbuf, err := ioutil.ReadFile("./kobopatch.yaml")
-	checkErr(err, "Could not read kobopatch.yaml")
+	var cfgbuf []byte
+	var err error
+	if len(os.Args) > 1 {
+		cfgfile := os.Args[1]
+		if cfgfile == "-" {
+			fmt.Printf("Reading config file from stdin\n")
+			cfgbuf, err = ioutil.ReadAll(os.Stdin)
+			checkErr(err, "Could not read kobopatch.yaml from stdin")
+		} else {
+			fmt.Printf("Reading config file from %s\n", cfgfile)
+			cfgbuf, err = ioutil.ReadFile(cfgfile)
+			checkErr(err, "Could not read kobopatch.yaml from argument")
+			outBase = filepath.Dir(cfgfile)
+			os.Chdir(outBase)
+			outBase += "/"
+		}
+	} else {
+		fmt.Printf("Reading config file (kobopatch.yaml)\n")
+		cfgbuf, err = ioutil.ReadFile("./kobopatch.yaml")
+		checkErr(err, "Could not read kobopatch.yaml")
+	}
+
 
 	cfg := &config{}
 	err = yaml.UnmarshalStrict(cfgbuf, &cfg)
@@ -392,7 +412,7 @@ func main() {
 	}
 
 	log("patch success\n")
-	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s. Remember to make sure your kobo is running the target firmware version before patching.\n", cfg.Out)
+	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s%s. Remember to make sure your kobo is running the target firmware version before patching.\n", outBase, cfg.Out)
 
 	if runtime.GOOS == "windows" {
 		fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")

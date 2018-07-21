@@ -44,14 +44,8 @@ type config struct {
 var log = func(format string, a ...interface{}) {}
 
 func main() {
-	fmt.Printf("kobopatch %s\n", version)
-	fmt.Printf("https://github.com/geek1011/kobopatch\n\n")
-
-	outBase := ""
-
-	// deal with command line options
 	help := pflag.BoolP("help", "h", false, "show this help text")
-	fw   := pflag.StringP("firmware", "f", "", "firmware file to be used")
+	fw := pflag.StringP("firmware", "f", "", "firmware file to be used")
 	pflag.Parse()
 
 	if *help || pflag.NArg() > 1 {
@@ -62,9 +56,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("kobopatch %s\n", version)
+	fmt.Printf("https://github.com/geek1011/kobopatch\n\n")
+
+	outBase := ""
+
 	var cfgbuf []byte
 	var err error
-	if len(pflag.Args()) > 1 {
+	if pflag.NArg() >= 1 {
 		cfgfile := pflag.Arg(0)
 		if cfgfile == "-" {
 			fmt.Printf("Reading config file from stdin\n")
@@ -83,7 +82,6 @@ func main() {
 		cfgbuf, err = ioutil.ReadFile("./kobopatch.yaml")
 		checkErr(err, "Could not read kobopatch.yaml")
 	}
-
 
 	cfg := &config{}
 	err = yaml.UnmarshalStrict(cfgbuf, &cfg)

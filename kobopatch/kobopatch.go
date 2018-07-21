@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/pflag"
 
 	"github.com/geek1011/kobopatch/patchfile"
 	_ "github.com/geek1011/kobopatch/patchfile/kobopatch"
@@ -48,10 +49,23 @@ func main() {
 
 	outBase := ""
 
+	// deal with command line options
+	help := pflag.BoolP("help", "h", false, "show this help text")
+	fw   := pflag.StringP("firmware", "f", "", "firmware file to be used")
+	pflag.Parse()
+
+	if *help || pflag.NArg() > 1 {
+		fmt.Fprintf(os.Stderr, "Usage: kobopatch [OPTIONS] [CONFIG_FILE]\n")
+		fmt.Fprintf(os.Stderr, "\nVersion: %s\n\nOptions:\n", version)
+		pflag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\nIf CONFIG_FILE is not specified, kobopatch will use ./kobopatch.yaml.\n")
+		os.Exit(1)
+	}
+
 	var cfgbuf []byte
 	var err error
-	if len(os.Args) > 1 {
-		cfgfile := os.Args[1]
+	if len(pflag.Args()) > 1 {
+		cfgfile := pflag.Arg(0)
 		if cfgfile == "-" {
 			fmt.Printf("Reading config file from stdin\n")
 			cfgbuf, err = ioutil.ReadAll(os.Stdin)
@@ -74,6 +88,10 @@ func main() {
 	cfg := &config{}
 	err = yaml.UnmarshalStrict(cfgbuf, &cfg)
 	checkErr(err, "Could not parse kobopatch.yaml")
+
+	if *fw != "" {
+		cfg.In = *fw
+	}
 
 	if cfg.Version == "" || cfg.In == "" || cfg.Out == "" || cfg.Log == "" {
 		checkErr(errors.New("version, in, out, and log are required"), "Could not parse kobopatch.yaml")

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/geek1011/kobopatch/patchlib"
-	"github.com/ogier/pflag"
+	"github.com/spf13/pflag"
 )
 
 var version = "unknown"

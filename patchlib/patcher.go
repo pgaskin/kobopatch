@@ -68,6 +68,9 @@ func (p *Patcher) FindBaseAddressString(find string) error {
 
 // ReplaceBytes replaces the first occurrence of a sequence of bytes with another of the same length.
 func (p *Patcher) ReplaceBytes(offset int32, find, replace []byte) error {
+	if !bytes.HasPrefix(p.buf[p.cur+offset:], find) {
+		return errors.New("could not find specified bytes at offset")
+	}
 	return wrapErrIfNotNil("ReplaceBytes", p.replaceValue(offset, find, replace))
 }
 

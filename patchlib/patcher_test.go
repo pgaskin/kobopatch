@@ -68,14 +68,14 @@ func TestReplaceBytes(t *testing.T) {
 func TestReplaceInt(t *testing.T) {
 	p := NewPatcher([]byte{0x00, 0x01, 0x02, 0xff, 0x04, 0x05})
 	err(t, p.ReplaceInt(4, 255, 195))
-	nerr(t, p.ReplaceInt(1, 255, 195))
-	err(t, p.ReplaceInt(1, 255, 195))
+	nerr(t, p.ReplaceInt(3, 255, 195))
+	err(t, p.ReplaceInt(2, 255, 195))
 	eq(t, p.GetBytes(), []byte{0x00, 0x01, 0x02, 0xc3, 0x04, 0x05}, "unexpected output")
 }
 
 func TestReplaceFloat(t *testing.T) {
 	p := NewPatcher([]byte{0x00, 0xcd, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xf0, 0x3f, 0x05})
-	nerr(t, p.ReplaceFloat(0, 1.05, 3.25))
+	nerr(t, p.ReplaceFloat(1, 1.05, 3.25))
 	err(t, p.ReplaceFloat(0, 1.05, 3.25))
 	eq(t, p.GetBytes(), []byte{0x00, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xa, 0x40, 0x05}, "unexpected output")
 }
@@ -133,12 +133,13 @@ func TestAll(t *testing.T) {
 	p := NewPatcher(in)
 	eq(t, p.cur, int32(0), "base address should be correct")
 
-	nerr(t, p.ReplaceInt(0, 255, 0))
+	err(t, p.ReplaceInt(0, 255, 0)) // strict matching
+	nerr(t, p.ReplaceInt(2, 255, 0))
 
 	nerr(t, p.ReplaceString(0, `this `, `that`))
 	err(t, p.ReplaceString(0, `this `, `that`)) // no match
 
-	nerr(t, p.ReplaceFloat(0, 1.05, 4.05))
+	nerr(t, p.ReplaceFloat(3, 1.05, 4.05))
 
 	err(t, p.FindBaseAddress([]byte("a testdfgdfg"))) // no match
 	eq(t, p.cur, int32(0), "base address should be correct")
@@ -248,15 +249,15 @@ func TestReal(t *testing.T) {
 
 func nerr(t *testing.T, err error) {
 	if err != nil {
-		t.Errorf("err should be nil: %v", err)
 		debug.PrintStack()
+		t.Fatalf("err should be nil: %v", err)
 	}
 }
 
 func err(t *testing.T, err error) {
 	if err == nil {
-		t.Error("err should not be nil")
 		debug.PrintStack()
+		t.Fatalf("err should not be nil")
 	}
 }
 

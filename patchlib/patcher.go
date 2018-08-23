@@ -68,10 +68,7 @@ func (p *Patcher) FindBaseAddressString(find string) error {
 
 // ReplaceBytes replaces the first occurrence of a sequence of bytes with another of the same length.
 func (p *Patcher) ReplaceBytes(offset int32, find, replace []byte) error {
-	if !bytes.HasPrefix(p.buf[p.cur+offset:], find) {
-		return errors.New("could not find specified bytes at offset")
-	}
-	return wrapErrIfNotNil("ReplaceBytes", p.replaceValue(offset, find, replace))
+	return wrapErrIfNotNil("ReplaceBytes", p.replaceValue(offset, find, replace, true))
 }
 
 // ReplaceString replaces the first occurrence of a string with another of the same length.
@@ -81,17 +78,17 @@ func (p *Patcher) ReplaceString(offset int32, find, replace string) error {
 		replace += "\x00"
 		replace = replace + find[len(replace):]
 	}
-	return wrapErrIfNotNil("ReplaceString", p.replaceValue(offset, find, replace))
+	return wrapErrIfNotNil("ReplaceString", p.replaceValue(offset, find, replace, false))
 }
 
 // ReplaceInt replaces the first occurrence of an integer between 0 and 255 inclusively.
 func (p *Patcher) ReplaceInt(offset int32, find, replace uint8) error {
-	return wrapErrIfNotNil("ReplaceInt", p.replaceValue(offset, find, replace))
+	return wrapErrIfNotNil("ReplaceInt", p.replaceValue(offset, find, replace, true))
 }
 
 // ReplaceFloat replaces the first occurrence of a float.
 func (p *Patcher) ReplaceFloat(offset int32, find, replace float64) error {
-	return wrapErrIfNotNil("ReplaceFloat", p.replaceValue(offset, find, replace))
+	return wrapErrIfNotNil("ReplaceFloat", p.replaceValue(offset, find, replace, true))
 }
 
 // FindZlib finds the base address of a zlib css stream based on a substring (not sensitive to whitespace).
@@ -297,7 +294,7 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 // replaceValue encodes find and replace as little-endian binary and replaces the first
 // occurrence starting at cur. The lengths of the encoded find and replace must be the
 // same, or an error will be returned.
-func (p *Patcher) replaceValue(offset int32, find, replace interface{}) error {
+func (p *Patcher) replaceValue(offset int32, find, replace interface{}, strictOffset bool) error {
 	if int32(len(p.buf)) < p.cur+offset {
 		return errors.New("offset past end of buf")
 	}
@@ -332,6 +329,11 @@ func (p *Patcher) replaceValue(offset int32, find, replace interface{}) error {
 
 	if !bytes.Contains(p.buf[p.cur+offset:], fbuf) {
 		return errors.New("could not find specified bytes")
+	}
+
+	if strictOffset && !bytes.HasPrefix(p.buf[p.cur+offset:], fbuf) {
+		fmt.Printf("%x -> %x (%x)[%x]{%d} {%v, %v, %v}\n", fbuf, rbuf, p.buf, p.buf[p.cur+offset:], p.cur+offset, find, replace, offset)
+		return errors.New("could not find specified bytes at offset")
 	}
 
 	copy(p.buf[p.cur+offset:], bytes.Replace(p.buf[p.cur+offset:], fbuf, rbuf, 1))

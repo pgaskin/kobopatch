@@ -28,8 +28,6 @@ build:
 	mkdir -p build
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch" github.com/geek1011/kobopatch/kobopatch
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/cssextract" github.com/geek1011/kobopatch/cssextract
-	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/patch32lsb" github.com/geek1011/kobopatch/patch32lsb
-	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/p32lsb2kobopatch" github.com/geek1011/kobopatch/p32lsb2kobopatch
 
 .PHONY: cross
 cross:

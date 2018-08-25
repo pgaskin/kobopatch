@@ -32,7 +32,7 @@ func main() {
 	pflag.Parse()
 
 	if *help || pflag.NArg() != 0 {
-		fmt.Fprintf(os.Stderr, "Usage: kobopatch-apply [OPTIONS] [KOBO_PATH]\n")
+		fmt.Fprintf(os.Stderr, "Usage: kobopatch-apply [OPTIONS]\n")
 		fmt.Fprintf(os.Stderr, "\nVersion: %s\n\nOptions:\n", version)
 		pflag.PrintDefaults()
 		os.Exit(1)

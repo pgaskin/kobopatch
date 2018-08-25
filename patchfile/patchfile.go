@@ -37,6 +37,15 @@ func GetFormat(name string) (func([]byte) (PatchSet, error), bool) {
 	return f, ok
 }
 
+// GetFormats gets all registered formats.
+func GetFormats() []string {
+	f := []string{}
+	for n := range formats {
+		f = append(f, n)
+	}
+	return f
+}
+
 // ReadFromFile reads a patchset from a file (but does not validate it).
 func ReadFromFile(format, filename string) (PatchSet, error) {
 	f, ok := GetFormat(format)

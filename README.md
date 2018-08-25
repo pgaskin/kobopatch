@@ -36,7 +36,3 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - Translation file support
 - more (coming soon)
 - Zlib support (coming soon)
-
-**Testing:**
-- Unit tests (automatically run by Travis CI): `go test -v ./...`
-- Real tests (compares original and new): rewrite coming soon, already done manually

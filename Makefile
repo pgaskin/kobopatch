@@ -28,6 +28,7 @@ build:
 	mkdir -p build
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch" github.com/geek1011/kobopatch/kobopatch
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-apply" github.com/geek1011/kobopatch/kobopatch-apply
+	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-mkzlib" github.com/geek1011/kobopatch/kobopatch-mkzlib
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/cssextract" github.com/geek1011/kobopatch/cssextract
 
 .PHONY: cross
@@ -46,6 +47,12 @@ cross:
 	CC="gcc -m32" CGO_ENABLED=1 GOOS=linux GOARCH=386 go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-apply-linux-32bit" github.com/geek1011/kobopatch/kobopatch-apply
 	# CC=arm-linux-gnueabihf-gcc-7 CGO_ENABLED=1 GOOS=linux GOARCH=arm go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-apply-linux-arm" github.com/geek1011/kobopatch/kobopatch-apply
 	CC=o64-clang CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-apply-darwin-64bit" github.com/geek1011/kobopatch/kobopatch-apply
+
+	CC=i686-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=386 go build -ldflags "-linkmode external -extldflags -static -X main.version=$(shell git describe --tags --always)" -o "build/koboptch-mkzlib-windows.exe" github.com/geek1011/kobopatch/kobopatch-mkzlib
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-mkzlib-linux-64bit" github.com/geek1011/kobopatch/kobopatch-mkzlib
+	CC="gcc -m32" CGO_ENABLED=1 GOOS=linux GOARCH=386 go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-mkzlib-linux-32bit" github.com/geek1011/kobopatch/kobopatch-mkzlib
+	# CC=arm-linux-gnueabihf-gcc-7 CGO_ENABLED=1 GOOS=linux GOARCH=arm go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-mkzlib-linux-arm" github.com/geek1011/kobopatch/kobopatch-mkzlib
+	CC=o64-clang CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-mkzlib-darwin-64bit" github.com/geek1011/kobopatch/kobopatch-mkzlib
 
 	CC=i686-w64-mingw32-gcc CGO_ENABLED=1 GOOS=windows GOARCH=386 go build -ldflags "-linkmode external -extldflags -static -X main.version=$(shell git describe --tags --always)" -o "build/cssextract-windows.exe" github.com/geek1011/kobopatch/cssextract
 	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/cssextract-linux-64bit" github.com/geek1011/kobopatch/cssextract

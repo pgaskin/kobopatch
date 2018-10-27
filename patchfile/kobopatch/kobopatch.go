@@ -177,7 +177,6 @@ func (ps *PatchSet) Validate() error {
 				ic++
 				roc++
 			}
-			patchfile.Log("  ic:%d\n", ic)
 			if ic < 1 {
 				return errors.Errorf("internal error while validating `%s` (you should report this as a bug)", n)
 			}
@@ -185,7 +184,6 @@ func (ps *PatchSet) Validate() error {
 				return errors.Errorf("more than one instruction per bullet in patch `%s` (you might be missing a -)", n)
 			}
 		}
-		patchfile.Log("  ec:%d, e:%t, pgc:%d, pg:%s, dc:%d, rbc:%d, roc: %d, fbsc:%d\n", ec, e, pgc, pg, dc, rbc, roc, fbsc)
 		if ec < 1 {
 			return errors.Errorf("no `Enabled` option in `%s`", n)
 		} else if ec > 1 {

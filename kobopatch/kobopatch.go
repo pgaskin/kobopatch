@@ -1,4 +1,3 @@
-// Command kobopatch is an all-in-one tool to apply patches to a kobo update zip.
 package main
 
 import (
@@ -6,42 +5,30 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
+	"github.com/geek1011/kobopatch/patchlib"
 
 	"github.com/geek1011/kobopatch/patchfile"
 	_ "github.com/geek1011/kobopatch/patchfile/kobopatch"
 	_ "github.com/geek1011/kobopatch/patchfile/patch32lsb"
-	"github.com/geek1011/kobopatch/patchlib"
-	yaml "gopkg.in/yaml.v2"
+
+	"github.com/spf13/pflag"
+	"gopkg.in/yaml.v2"
 )
 
 var version = "unknown"
-
-type config struct {
-	Version      string                     `yaml:"version" json:"version"`
-	In           string                     `yaml:"in" json:"in"`
-	Out          string                     `yaml:"out" json:"out"`
-	Log          string                     `yaml:"log" json:"log"`
-	PatchFormat  string                     `yaml:"patchFormat" json:"patchFormat"`
-	Patches      map[string]string          `yaml:"patches" json:"patches"`
-	Overrides    map[string]map[string]bool `yaml:"overrides" json:"overrides"`
-	Lrelease     string                     `yaml:"lrelease" json:"lrelease"`
-	Translations map[string]string          `yaml:"translations" json:"translations"`
-	Files        map[string]string          `yaml:"files" json:"files"`
-}
-
-var log = func(format string, a ...interface{}) {}
 
 func main() {
 	help := pflag.BoolP("help", "h", false, "show this help text")
@@ -56,185 +43,353 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("kobopatch %s\n", version)
-	fmt.Printf("https://github.com/geek1011/kobopatch\n\n")
+	var tmp bytes.Buffer
+	var logfile io.Writer = &tmp
 
-	outBase := ""
+	k := &KoboPatch{
+		Logf: func(format string, a ...interface{}) {
+			fmt.Printf(format+"\n", a...)
+		},
+		Errorf: func(format string, a ...interface{}) {
+			fmt.Fprintf(os.Stderr, format+"\n", a...)
+		},
+		Debugf: func(format string, a ...interface{}) {
+			fmt.Fprintf(logfile, format+"\n", a...)
+		},
+	}
 
-	var cfgbuf []byte
-	var err error
+	patchfile.Log = func(format string, a ...interface{}) {
+		k.Debugf("          | %s", strings.Replace(fmt.Sprintf(strings.TrimRight(format, "\n"), a...), "\n", "\n          | ", -1))
+	}
+
+	k.Logf("kobopatch %s\nhttps://github.com/geek1011/kobopatch\n", version)
+	k.Debugf("kobopatch %s\nhttps://github.com/geek1011/kobopatch\n", version)
+
+	conf := "kobopatch.yaml"
 	if pflag.NArg() >= 1 {
-		cfgfile := pflag.Arg(0)
-		if cfgfile == "-" {
-			fmt.Printf("Reading config file from stdin\n")
-			cfgbuf, err = ioutil.ReadAll(os.Stdin)
-			checkErr(err, "Could not read kobopatch.yaml from stdin")
-		} else {
-			fmt.Printf("Reading config file from %s\n", cfgfile)
-			cfgbuf, err = ioutil.ReadFile(cfgfile)
-			checkErr(err, "Could not read kobopatch.yaml from argument")
-			outBase = filepath.Dir(cfgfile)
-			os.Chdir(outBase)
-			outBase += "/"
+		conf = pflag.Arg(0)
+	}
+
+	k.Logf("Loading configuration from %s", conf)
+	if conf == "-" {
+		err := k.LoadConfig(os.Stdin)
+		if err != nil {
+			k.Errorf("Error: could not load config file from stdin: %v", err)
+			os.Exit(1)
+			return
 		}
 	} else {
-		fmt.Printf("Reading config file (kobopatch.yaml)\n")
-		cfgbuf, err = ioutil.ReadFile("./kobopatch.yaml")
-		checkErr(err, "Could not read kobopatch.yaml")
+		f, err := os.Open(conf)
+		if err != nil {
+			k.Errorf("Error: could not load config file: %v", err)
+			os.Exit(1)
+			return
+		}
+		err = k.LoadConfig(f)
+		if err != nil {
+			k.Errorf("Error: could not load config file: %v", err)
+			os.Exit(1)
+			return
+		}
+		f.Close()
 	}
 
-	cfg := &config{}
-	err = yaml.UnmarshalStrict(cfgbuf, &cfg)
-	checkErr(err, "Could not parse kobopatch.yaml")
+	f, err := os.Create(k.Config.Log)
+	if err != nil {
+		k.Errorf("Error: could not create log file")
+		os.Exit(1)
+		return
+	}
+	defer f.Close()
+	f.Write(tmp.Bytes())
+	logfile = f
 
 	if *fw != "" {
-		cfg.In = *fw
+		k.d("firmware file overridden from command line: %s", *fw)
+		k.Config.In = *fw
 	}
 
-	if cfg.Version == "" || cfg.In == "" || cfg.Out == "" || cfg.Log == "" {
-		checkErr(errors.New("version, in, out, and log are required"), "Could not parse kobopatch.yaml")
+	k.OutputInit()
+
+	if err := k.ApplyPatches(); err != nil {
+		k.Errorf("Error: could not apply patches: %v", err)
+		os.Exit(1)
+		return
 	}
 
-	_, ok := patchfile.GetFormat(cfg.PatchFormat)
-	if !ok {
-		checkErr(errors.New("invalid patch format"), "Error")
+	if err := k.ApplyTranslations(); err != nil {
+		k.Errorf("Error: could not apply translations: %v", err)
+		os.Exit(1)
+		return
 	}
 
-	logf, err := os.Create(cfg.Log)
-	checkErr(err, "Could not open and truncate log file")
-	defer logf.Close()
-
-	log = func(format string, a ...interface{}) {
-		fmt.Fprintf(logf, format, a...)
-	}
-	patchfile.Log = func(format string, a ...interface{}) {
-		fmt.Fprintf(logf, "        "+format, a...)
+	if err := k.ApplyFiles(); err != nil {
+		k.Errorf("Error: could not apply additional files: %v", err)
+		os.Exit(1)
+		return
 	}
 
-	log("config: %#v\n", cfg)
+	if err := k.WriteOutput(); err != nil {
+		k.Errorf("Error: could not write output: %v", err)
+		os.Exit(1)
+		return
+	}
 
-	d, _ := os.Getwd()
-	log("kobopatch %s\n\ndir:%s\ncfg: %#v\n\n", version, d, cfg)
+	fmt.Printf("\nSuccessfully saved patched KoboRoot.tgz to %s. Remember to make sure your kobo is running the target firmware version before patching.\n", k.Config.Out)
 
-	fmt.Printf("Opening input file\n")
+	if runtime.GOOS == "windows" {
+		fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")
+		time.Sleep(time.Second * 60)
+	}
+}
 
-	log("opening zip\n")
-	zipr, err := zip.OpenReader(cfg.In)
-	checkErr(err, "Could not open input file")
-	defer zipr.Close()
+type KoboPatch struct {
+	Config *Config
 
-	log("searching for KoboRoot.tgz\n")
-	var tgzr io.ReadCloser
-	for _, f := range zipr.File {
-		log("  file: %s\n", f.Name)
+	outBuf             bytes.Buffer
+	outTar             *tar.Writer
+	outGZ              *gzip.Writer
+	outTarExpectedSize int64
+
+	Logf   func(format string, a ...interface{}) // displayed to user
+	Errorf func(format string, a ...interface{}) // displayed to user
+	Debugf func(format string, a ...interface{}) // for verbose logging
+}
+
+type Config struct {
+	Version      string
+	In           string
+	Out          string
+	Log          string
+	PatchFormat  string `yaml:"patchFormat"` // DEPRECATED: now detected from extension; .patch -> p32lsb, .yaml -> kobopatch
+	Patches      map[string]string
+	Overrides    map[string]map[string]bool
+	Lrelease     string
+	Translations map[string]string
+	Files        map[string]string
+}
+
+func (k *KoboPatch) OutputInit() {
+	k.d("\n\nKoboPatch::OutputInit")
+	k.outBuf.Reset()
+	k.outGZ = gzip.NewWriter(&k.outBuf)
+	k.outTar = tar.NewWriter(k.outGZ)
+}
+
+func (k *KoboPatch) WriteOutput() error {
+	k.d("\n\nKoboPatch::WriteOutput")
+
+	k.d("Removing old output tgz '%s'", k.Config.Out)
+	os.Remove(k.Config.Out)
+
+	k.d("Closing tar")
+	if err := k.outTar.Close(); err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "could not finalize output tar.gz")
+	}
+	k.outTar = nil
+
+	k.d("Closing gz")
+	if err := k.outGZ.Close(); err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "could not finalize output tar.gz")
+	}
+	k.outGZ = nil
+
+	k.d("Writing buf to output '%s'", k.Config.Out)
+	if err := ioutil.WriteFile(k.Config.Out, k.outBuf.Bytes(), 0644); err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "could not write output tar.gz")
+	}
+
+	k.l("\nChecking patched KoboRoot.tgz for consistency")
+	k.d("Checking patched KoboRoot.tgz for consistency")
+
+	f, err := os.Open(k.Config.Out)
+	if err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "could not open output for reading")
+	}
+
+	zr, err := gzip.NewReader(f)
+	if err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "could not open output gz")
+	}
+
+	tr := tar.NewReader(zr)
+
+	var sum int64
+	for h, err := tr.Next(); err != io.EOF; h, err = tr.Next() {
+		sum += h.Size
+	}
+
+	k.d("sum:%d == expected:%d", sum, k.outTarExpectedSize)
+	if sum != k.outTarExpectedSize {
+		k.d("--> size mismatch")
+		return fmt.Errorf("size mismatch: expected %d, got %d (please report this)", k.outTarExpectedSize, sum)
+	}
+
+	return nil
+}
+
+func (k *KoboPatch) LoadConfig(r io.Reader) error {
+	k.d("\n\nKoboPatch::LoadConfig")
+
+	k.d("reading config file from %v", reflect.TypeOf(r))
+	buf, err := ioutil.ReadAll(r)
+	if err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "error reading config")
+	}
+
+	k.d("unmarshaling yaml")
+	err = yaml.UnmarshalStrict(buf, &k.Config)
+	if err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "error reading kobopatch.yaml")
+	}
+
+	if k.Config.Version == "" || k.Config.In == "" || k.Config.Out == "" || k.Config.Log == "" {
+		err = errors.New("invalid kobopatch.yaml: version, in, out, and log are required")
+		k.d("--> %v", err)
+		return err
+	}
+
+	if _, ok := patchfile.GetFormat(k.Config.PatchFormat); !ok {
+		err = fmt.Errorf("invalid patch format '%s', expected one of %s", k.Config.PatchFormat, strings.Join(patchfile.GetFormats(), ", "))
+		k.d("--> %v", err)
+		return err
+	}
+
+	k.dp("  | ", "%s", jm(k.Config))
+	return nil
+}
+
+func (k *KoboPatch) ApplyPatches() error {
+	k.d("\n\nKoboPatch::ApplyPatches")
+
+	k.l("Reading input firmware zip")
+	k.d("Opening firmware zip '%s'", k.Config.In)
+
+	zr, err := zip.OpenReader(k.Config.In)
+	if err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "could not open firmware zip")
+	}
+
+	k.d("Looking for KoboRoot.tgz in zip")
+	var kr io.ReadCloser
+	for _, f := range zr.File {
+		k.d("--> found %s", f.Name)
 		if f.Name == "KoboRoot.tgz" {
-			log("found KoboRoot.tgz, opening\n")
-			tgzr, err = f.Open()
-			checkErr(err, "Could not open KoboRoot.tgz")
+			k.d("-->    opening KoboRoot.tgz")
+			kr, err = f.Open()
+			if err != nil {
+				k.d("-->    --> %v", err)
+				return wrap(err, "could not open KoboRoot.tgz in firmware zip")
+			}
 			break
 		}
 	}
-	if tgzr == nil {
-		log("KoboRoot.tgz reader empty so KoboRoot.tgz not in zip\n")
-		checkErr(errors.New("no such file in zip"), "Could not open KoboRoot.tgz")
+	if kr == nil {
+		k.d("--> could not find KoboRoot.tgz")
+		return errors.New("could not find KoboRoot.tgz")
 	}
-	defer tgzr.Close()
+	defer kr.Close()
 
-	log("creating new gzip reader for tgz\n")
-	tdr, err := gzip.NewReader(tgzr)
-	checkErr(err, "Could not decompress KoboRoot.tgz")
-	defer tdr.Close()
+	k.d("Opening gzip reader")
+	gzr, err := gzip.NewReader(kr)
+	if err != nil {
+		k.d("--> %v", err)
+		return wrap(err, "could not decompress KoboRoot.tgz")
+	}
+	defer gzr.Close()
 
-	log("creating new tar reader for gzip reader for tgz\n")
-	tr := tar.NewReader(tdr)
-	checkErr(err, "Could not read KoboRoot.tgz as tar archive")
+	k.d("Creating tar reader")
+	tr := tar.NewReader(gzr)
 
-	log("creating new buffer for output\n")
-	var outw bytes.Buffer
-	outzw := gzip.NewWriter(&outw)
-	defer outzw.Close()
-
-	log("creating new tar writer for output buffer\n")
-	outtw := tar.NewWriter(outzw)
-	defer outtw.Close()
-
-	var expectedSizeSum int64
-
-	log("looping over files from source tgz\n")
 	for {
-		log("  reading entry\n")
 		h, err := tr.Next()
 		if err == io.EOF {
-			err = nil
 			break
+		} else if err != nil {
+			k.d("--> could not read entry from tgz: %v", err)
+			return wrap(err, "could not read input firmware")
 		}
-		checkErr(err, "Could not read entry from KoboRoot.tgz")
-		log("    entry: %s - size:%d, mode:%v\n", h.Name, h.Size, h.Mode)
 
-		log("    checking if entry needs patching\n")
-		var needsPatching bool
 		patchfiles := []string{}
-		for n, f := range cfg.Patches {
+		for n, f := range k.Config.Patches {
 			if h.Name == "./"+f || h.Name == f {
-				log("    entry needs patching\n")
-				needsPatching = true
 				patchfiles = append(patchfiles, n)
 			}
 		}
-		log("    matching patch files: %v\n", patchfiles)
 
-		if !needsPatching {
-			log("    entry does not need patching\n")
+		if len(patchfiles) < 1 {
 			continue
 		}
 
-		log("    checking type before patching - typeflag: %v\n", h.Typeflag)
-		fmt.Printf("Patching %s\n", h.Name)
+		k.d("    patching entry name:'%s' size:%d mode:'%v' typeflag:'%v' with files: %s", h.Name, h.Size, h.Mode, h.Typeflag, strings.Join(patchfiles, ", "))
+		k.l("\nPatching %s", h.Name)
 
 		if h.Typeflag != tar.TypeReg {
-			checkErr(errors.New("not a regular file"), "Could not patch file")
+			k.d("    --> could not patch: not a regular file")
+			return fmt.Errorf("could not patch file '%s': not a regular file", h.Name)
 		}
 
-		log("    reading entry contents\n")
-		fbuf, err := ioutil.ReadAll(tr)
-		checkErr(err, "Could not read file contents from KoboRoot.tgz")
+		k.d("        reading entry contents")
+		buf, err := ioutil.ReadAll(tr)
+		if err != nil {
+			k.d("    --> could not patch: could not read contents: %v", err)
+			return wrap(err, "could not patch file '%s': could not read contents", h.Name)
+		}
 
-		pt := patchlib.NewPatcher(fbuf)
+		pt := patchlib.NewPatcher(buf)
 
 		for _, pfn := range patchfiles {
-			log("    loading patch file: %s\n", pfn)
-			ps, err := patchfile.ReadFromFile(cfg.PatchFormat, pfn)
-			checkErr(err, "Could not read and parse patch file "+pfn)
+			k.d("        loading patch file '%s' (detected format %s)", pfn, getFormat(pfn))
+			ps, err := patchfile.ReadFromFile(getFormat(pfn), pfn)
+			if err != nil {
+				k.d("        --> %v", err)
+				return wrap(err, "could not load patch file '%s'", pfn)
+			}
 
-			for ofn, o := range cfg.Overrides {
+			for ofn, o := range k.Config.Overrides {
 				if ofn != pfn || o == nil || len(o) < 1 {
 					continue
 				}
-				fmt.Printf("  Applying overrides from config\n")
+				k.l("  Applying overrides")
+				k.d("        applying overrides")
 				for on, os := range o {
-					log("    override: %s -> %t\n", on, os)
-					fmt.Printf("    '%s' -> enabled:%t\n", on, os)
-					err := ps.SetEnabled(on, os)
-					checkErr(err, "Could not override patch '"+on+"'")
+					k.l("    %s -> %t", on, os)
+					k.d("            override %s -> enabled:%t", on, os)
+					if err := ps.SetEnabled(on, os); err != nil {
+						k.d("            --> %v", err)
+						return wrap(err, "could not override enabled for patch '%s'", on)
+					}
 				}
 			}
 
-			log("    validating patch file\n")
-			err = ps.Validate()
-			checkErr(err, "Invalid patch file "+pfn)
+			k.d("        validating patch file")
+			if err := ps.Validate(); err != nil {
+				k.d("        --> %v", err)
+				return wrap(err, "invalid patch file '%s'", pfn)
+			}
 
-			log("    applying patch file\n")
-			err = ps.ApplyTo(pt)
-			checkErr(err, "Could not apply patch file "+pfn)
+			k.d("        applying patch file")
+			if err := ps.ApplyTo(pt); err != nil {
+				k.d("        --> %v", err)
+				return wrap(err, "error applying patch file '%s'", pfn)
+			}
 		}
 
-		fbuf = pt.GetBytes()
+		fbuf := pt.GetBytes()
+		k.outTarExpectedSize += h.Size
+		k.d("        patched file - orig:%d new:%d", h.Size, len(fbuf))
 
-		expectedSizeSum += h.Size
-
-		log("    copying new header to output tar - size:%d, mode:%v\n", len(fbuf), h.Mode)
+		k.d("        copying new header to output tar - size:%d mode:'%v'", len(fbuf), h.Mode)
 		// Preserve attributes (VERY IMPORTANT)
-		err = outtw.WriteHeader(&tar.Header{
+		err = k.outTar.WriteHeader(&tar.Header{
 			Typeflag:   h.Typeflag,
 			Name:       h.Name,
 			Mode:       h.Mode,
@@ -247,75 +402,89 @@ func main() {
 			Size:       int64(len(fbuf)),
 			Format:     h.Format,
 		})
-		checkErr(err, "Could not write new header to patched KoboRoot.tgz")
+		if err != nil {
+			k.d("        --> %v", err)
+			return wrap(err, "could not write new file header to patched KoboRoot.tgz")
+		}
 
-		log("    writing patched binary to output\n")
-		i, err := outtw.Write(fbuf)
-		checkErr(err, "Could not write new file to patched KoboRoot.tgz")
-		if i != len(fbuf) {
-			checkErr(errors.New("could not write whole file"), "Could not write new file to patched KoboRoot.tgz")
+		k.d("        writing patched file to tar writer")
+		if i, err := k.outTar.Write(fbuf); err != nil {
+			k.d("        --> %v", err)
+			return wrap(err, "error writing new file to patched KoboRoot.tgz")
+		} else if i != len(fbuf) {
+			k.d("        --> error writing new file to patched KoboRoot.tgz")
+			return errors.New("error writing new file to patched KoboRoot.tgz")
 		}
 	}
 
-	if len(cfg.Translations) >= 1 {
-		log("looking for lrelease\n")
-		lr := cfg.Lrelease
+	return nil
+}
+
+func (k *KoboPatch) ApplyTranslations() error {
+	k.d("\n\nKoboPatch::ApplyTranslations")
+	if len(k.Config.Translations) >= 1 {
+		k.l("\nProcessing translations")
+		k.d("looking for lrelease in config")
+		lr := k.Config.Lrelease
 		var err error
 		if lr == "" {
+			k.d("looking for lrelease in path")
 			lr, err = exec.LookPath("lrelease")
 			if lr == "" {
-				lr, err = exec.LookPath("lrelease")
+				k.d("looking for lrelease.exe in path")
+				lr, err = exec.LookPath("lrelease.exe")
 				if err != nil {
-					checkErr(err, "Could not find lrelease")
+					k.d("--> %v", err)
+					return wrap(err, "could not find lrelease (part of QT Linguist)")
 				}
 			}
-		}
-		lr, err = exec.LookPath(lr)
-		if err != nil {
-			checkErr(err, "Could not find lrelease")
+		} else if lr, err = exec.LookPath(lr); err != nil {
+			k.d("--> %v", err)
+			return wrap(err, "could not find lrelease (part of QT Linguist)")
 		}
 
-		log("processing translations")
-		fmt.Printf("Processing translations\n")
-		for ts, qm := range cfg.Translations {
-			fmt.Printf("  Processing %s\n", ts)
-
-			log("    %s -> %s\n", ts, qm)
+		for ts, qm := range k.Config.Translations {
+			k.l("  Processing %s", ts)
+			k.d("    processing '%s' -> '%s'", ts, qm)
 			if !strings.HasPrefix(qm, "usr/local/Kobo/translations/") {
 				err = errors.New("output for translation must start with usr/local/Kobo/translations/")
-				checkErr(err, "Could not process translation")
+				k.d("    --> %v", err)
+				return wrap(err, "could not process translation")
 			}
 
-			log("    creating temp dir for lrelease\n")
+			k.d("        creating temp dir for lrelease")
 			td, err := ioutil.TempDir(os.TempDir(), "lrelease-qm")
 			if err != nil {
-				checkErr(err, "Could not make temp dir for lrelease")
+				k.d("        --> %v", err)
+				return wrap(err, "could not make temp dir for lrelease")
 			}
 
 			tf := filepath.Join(td, "out.qm")
 
 			cmd := exec.Command(lr, ts, "-qm", tf)
-			outbuf := bytes.NewBuffer(nil)
-			errbuf := bytes.NewBuffer(nil)
-			cmd.Stdout = outbuf
-			cmd.Stderr = errbuf
+			var outbuf, errbuf bytes.Buffer
+			cmd.Stdout, cmd.Stderr = &outbuf, &errbuf
 
 			err = cmd.Run()
-			log("    lrelease stdout:\n")
-			log(outbuf.String())
-			log("    lrelease stderr:\n")
-			log(errbuf.String())
+			k.dp("          | ", "lrelease stdout: %s", outbuf.String())
+			k.dp("          | ", "lrelease stderr: %s", errbuf.String())
 			if err != nil {
-				fmt.Println(errbuf.String())
+				k.e(errbuf.String())
 				os.RemoveAll(td)
-				checkErr(err, "error running lrelease")
+				k.d("        --> %v", err)
+				return wrap(err, "error running lrelease")
 			}
 
+			k.d("        reading generated qm '%s'", ts)
 			buf, err := ioutil.ReadFile(tf)
-			checkErr(err, "Could not read generated qm file")
+			if err != nil {
+				k.d("        --> %v", err)
+				return wrap(err, "could not read generated qm file")
+			}
 			os.RemoveAll(td)
 
-			err = outtw.WriteHeader(&tar.Header{
+			k.d("        writing header")
+			err = k.outTar.WriteHeader(&tar.Header{
 				Typeflag: tar.TypeReg,
 				Name:     "./" + qm,
 				Mode:     0777,
@@ -324,35 +493,46 @@ func main() {
 				ModTime:  time.Now(),
 				Size:     int64(len(buf)),
 			})
-			checkErr(err, "Could not write new header for translation to patched KoboRoot.tgz")
-
-			log("    writing qm to output\n")
-			i, err := outtw.Write(buf)
-			checkErr(err, "Could not write qm to patched KoboRoot.tgz")
-			if i != len(buf) {
-				checkErr(errors.New("could not write whole file"), "Could not write new file to patched KoboRoot.tgz")
+			if err != nil {
+				k.d("    --> %v", err)
+				return wrap(err, "could not write translation file to KoboRoot.tgz")
 			}
 
-			os.RemoveAll(td)
+			k.d("        writing file")
+			if i, err := k.outTar.Write(buf); err != nil {
+				k.d("    --> %v", err)
+				return wrap(err, "error writing translation file to KoboRoot.tgz")
+			} else if i != len(buf) {
+				k.d("    --> error writing translation file to KoboRoot.tgz")
+				return errors.New("error writing translation file to KoboRoot.tgz")
+			}
+			k.outTarExpectedSize += int64(len(buf))
 		}
 	}
+	return nil
+}
 
-	if len(cfg.Files) >= 1 {
-		log("adding additional files")
-		fmt.Printf("Adding additional files\n")
-		for src, dest := range cfg.Files {
-			fmt.Printf("  Processing %s\n", src)
-
-			log("    %s -> %s\n", src, dest)
+func (k *KoboPatch) ApplyFiles() error {
+	k.d("\n\nKoboPatch::ApplyFiles")
+	if len(k.Config.Files) >= 1 {
+		k.l("\nAdding additional files")
+		for src, dest := range k.Config.Files {
+			k.l("  Adding %s", src)
+			k.d("    %s -> %s", src, dest)
 			if strings.HasPrefix(dest, "/") {
-				err = errors.New("output for custom file must not start with a slash")
-				checkErr(err, "Could not process additional file")
+				k.d("    --> destination must not start with a slash")
+				return errors.New("could not add file: destination must not start with a slash")
 			}
 
+			k.d("        reading file")
 			buf, err := ioutil.ReadFile(src)
-			checkErr(err, "Could not read additional file '"+src+"'")
+			if err != nil {
+				k.d("    --> %v", err)
+				return wrap(err, "could not read additional file '%s'", src)
+			}
 
-			err = outtw.WriteHeader(&tar.Header{
+			k.d("        writing header")
+			err = k.outTar.WriteHeader(&tar.Header{
 				Typeflag: tar.TypeReg,
 				Name:     "./" + dest,
 				Mode:     0777,
@@ -361,95 +541,66 @@ func main() {
 				ModTime:  time.Now(),
 				Size:     int64(len(buf)),
 			})
-			checkErr(err, "Could not write new header for additional file to patched KoboRoot.tgz")
-
-			log("    writing qm to output\n")
-			i, err := outtw.Write(buf)
-			checkErr(err, "Could not write additional file to patched KoboRoot.tgz")
-			if i != len(buf) {
-				checkErr(errors.New("could not write whole file"), "Could not write new file to patched KoboRoot.tgz")
+			if err != nil {
+				k.d("    --> %v", err)
+				return wrap(err, "could not write additional file to KoboRoot.tgz")
 			}
-		}
-	}
 
-	fmt.Printf("Writing patched KoboRoot.tgz\n")
-
-	log("removing old output tgz: %s\n", cfg.Out)
-	os.Remove(cfg.Out)
-
-	log("flushing output tar writer to buffer\n")
-	err = outtw.Close()
-	checkErr(err, "Could not finish writing patched tar")
-	time.Sleep(time.Millisecond * 500)
-
-	log("flushing output gzip writer to buffer\n")
-	err = outzw.Close()
-	checkErr(err, "Could not finish writing compressed patched tar")
-	time.Sleep(time.Millisecond * 500)
-
-	log("writing buffer to output file\n")
-	err = ioutil.WriteFile(cfg.Out, outw.Bytes(), 0644)
-	checkErr(err, "Could not write patched KoboRoot.tgz")
-
-	fmt.Printf("Checking patched KoboRoot.tgz for consistency\n")
-	log("checking consistency\n")
-
-	log("opening out as read-only\n")
-	checkr, err := os.Open(cfg.Out)
-	checkErr(err, "Could not open patched tgz")
-	defer checkr.Close()
-
-	log("creating gzip reader\n")
-	checkzr, err := gzip.NewReader(checkr)
-	checkErr(err, "Could not open patched tgz")
-	defer checkzr.Close()
-
-	log("creating tar reader\n")
-	checktr := tar.NewReader(checkzr)
-	checkErr(err, "Could not open patched tgz")
-
-	var sizeSum int64
-	for {
-		h, err := checktr.Next()
-		if err == io.EOF {
-			break
-		}
-		log("  reading entry: %s: %d\n", h.Name, h.Size)
-		for _, f := range cfg.Patches {
-			if h.Name == "./"+f || h.Name == f {
-				sizeSum += h.Size
-				log("  matched, added %d to sum, sum:%s\n", h.Size, sizeSum)
-				break
+			k.d("        writing file")
+			if i, err := k.outTar.Write(buf); err != nil {
+				k.d("    --> %v", err)
+				return wrap(err, "error writing additional file to KoboRoot.tgz")
+			} else if i != len(buf) {
+				k.d("    --> error writing additional file to KoboRoot.tgz")
+				return errors.New("error writing additional file to KoboRoot.tgz")
 			}
+			k.outTarExpectedSize += int64(len(buf))
 		}
 	}
-	if expectedSizeSum != sizeSum {
-		checkErr(errors.Errorf("size mismatch: expected %d, got %d. (please report this as a bug)", expectedSizeSum, sizeSum), "Error checking patched KoboRoot.tgz for consistency")
-	}
+	return nil
+}
 
-	log("patch success\n")
-	fmt.Printf("Successfully saved patched KoboRoot.tgz to %s%s. Remember to make sure your kobo is running the target firmware version before patching.\n", outBase, cfg.Out)
+func (k *KoboPatch) RunPatchTests(verbose bool) (map[string]map[string]bool, error) {
+	k.d("\n\nKoboPatch::RunPatchTests")
+	return nil, errors.New("not implemented")
+}
 
-	if runtime.GOOS == "windows" {
-		fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")
-		time.Sleep(time.Second * 60)
+func (k *KoboPatch) l(format string, a ...interface{}) {
+	if k.Logf != nil {
+		k.Logf(format, a...)
 	}
 }
 
-func checkErr(err error, msg string) {
-	if err == nil {
-		return
+func (k *KoboPatch) e(format string, a ...interface{}) {
+	if k.Errorf != nil {
+		k.Errorf(format, a...)
 	}
-	if msg != "" {
-		log("Fatal: %s: %v\n", msg, err)
-		fmt.Fprintf(os.Stderr, "Fatal: %s: %v\n", msg, err)
-	} else {
-		log("Fatal: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Fatal: %v\n", err)
+}
+
+func (k *KoboPatch) d(format string, a ...interface{}) {
+	if k.Debugf != nil {
+		k.Debugf(format, a...)
 	}
-	if runtime.GOOS == "windows" {
-		fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")
-		time.Sleep(time.Second * 60)
+}
+
+func (k *KoboPatch) dp(prefix string, format string, a ...interface{}) {
+	k.d("%s%s", prefix, strings.Replace(fmt.Sprintf(format, a...), "\n", "\n"+prefix, -1))
+}
+
+func wrap(err error, format string, a ...interface{}) error {
+	return fmt.Errorf("%s: %v", fmt.Sprintf(format, a...), err)
+}
+
+func jm(v interface{}) string {
+	if buf, err := json.MarshalIndent(v, "", "    "); err == nil {
+		return string(buf)
 	}
-	os.Exit(1)
+	return ""
+}
+
+func getFormat(filename string) string {
+	f := strings.TrimLeft(filepath.Ext(filename), ".")
+	f = strings.Replace(f, "patch", "patch32lsb", -1)
+	f = strings.Replace(f, "yaml", "kobopatch", -1)
+	return f
 }

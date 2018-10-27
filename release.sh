@@ -49,7 +49,7 @@ wget http://mirrors.kernel.org/ubuntu/pool/universe/libz/libz-mingw-w64/libz-min
 sudo dpkg -i *.deb
 rm -rfv *.deb
 
-make cross convert
+make cross
 rm -rf osxcross
 
 if [[ "$SKIP_UPLOAD" != "true" ]]; then

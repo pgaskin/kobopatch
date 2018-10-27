@@ -15,13 +15,14 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/geek1011/kobopatch/patchlib"
 
 	"github.com/geek1011/kobopatch/patchfile"
-	_ "github.com/geek1011/kobopatch/patchfile/kobopatch"
+	"github.com/geek1011/kobopatch/patchfile/kobopatch"
 	_ "github.com/geek1011/kobopatch/patchfile/patch32lsb"
 
 	"github.com/spf13/pflag"
@@ -33,6 +34,7 @@ var version = "unknown"
 func main() {
 	help := pflag.BoolP("help", "h", false, "show this help text")
 	fw := pflag.StringP("firmware", "f", "", "firmware file to be used")
+	t := pflag.BoolP("run-tests", "t", false, "test all patches (instead of running kobopatch)")
 	pflag.Parse()
 
 	if *help || pflag.NArg() > 1 {
@@ -107,6 +109,37 @@ func main() {
 	if *fw != "" {
 		k.d("firmware file overridden from command line: %s", *fw)
 		k.Config.In = *fw
+	}
+
+	if *t {
+		if res, err := k.RunPatchTests(); err != nil {
+			k.Errorf("Error: could not apply patches: %v", err)
+			os.Exit(1)
+			return
+		} else {
+			errs := []string{}
+			for pfn, ps := range res {
+				for pn, err := range ps {
+					if err != nil {
+						errs = append(errs, fmt.Sprintf("%s: %s: %v", pfn, pn, err))
+					}
+				}
+			}
+			if len(errs) > 0 {
+				k.l("\nErrors:\n  %s", strings.Join(errs, "\n  "))
+				if runtime.GOOS == "windows" {
+					fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")
+					time.Sleep(time.Second * 60)
+				}
+				os.Exit(1)
+			}
+		}
+		fmt.Println("\nAll patches applied successfully.")
+		if runtime.GOOS == "windows" {
+			fmt.Printf("\n\nWaiting 60 seconds because runnning on Windows\n")
+			time.Sleep(time.Second * 60)
+		}
+		os.Exit(0)
 	}
 
 	k.OutputInit()
@@ -560,9 +593,162 @@ func (k *KoboPatch) ApplyFiles() error {
 	return nil
 }
 
-func (k *KoboPatch) RunPatchTests(verbose bool) (map[string]map[string]bool, error) {
+func (k *KoboPatch) RunPatchTests() (map[string]map[string]error, error) {
 	k.d("\n\nKoboPatch::RunPatchTests")
-	return nil, errors.New("not implemented")
+
+	res := map[string]map[string]error{}
+
+	k.l("Reading input firmware zip")
+	k.d("Opening firmware zip '%s'", k.Config.In)
+
+	zr, err := zip.OpenReader(k.Config.In)
+	if err != nil {
+		k.d("--> %v", err)
+		return nil, wrap(err, "could not open firmware zip")
+	}
+
+	k.d("Looking for KoboRoot.tgz in zip")
+	var kr io.ReadCloser
+	for _, f := range zr.File {
+		k.d("--> found %s", f.Name)
+		if f.Name == "KoboRoot.tgz" {
+			k.d("-->    opening KoboRoot.tgz")
+			kr, err = f.Open()
+			if err != nil {
+				k.d("-->    --> %v", err)
+				return nil, wrap(err, "could not open KoboRoot.tgz in firmware zip")
+			}
+			break
+		}
+	}
+	if kr == nil {
+		k.d("--> could not find KoboRoot.tgz")
+		return nil, errors.New("could not find KoboRoot.tgz")
+	}
+	defer kr.Close()
+
+	k.d("Opening gzip reader")
+	gzr, err := gzip.NewReader(kr)
+	if err != nil {
+		k.d("--> %v", err)
+		return nil, wrap(err, "could not decompress KoboRoot.tgz")
+	}
+	defer gzr.Close()
+
+	k.d("Creating tar reader")
+	tr := tar.NewReader(gzr)
+
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			k.d("--> could not read entry from tgz: %v", err)
+			return nil, wrap(err, "could not read input firmware")
+		}
+
+		patchfiles := []string{}
+		for n, f := range k.Config.Patches {
+			if h.Name == "./"+f || h.Name == f {
+				patchfiles = append(patchfiles, n)
+			}
+		}
+
+		if len(patchfiles) < 1 {
+			continue
+		}
+
+		k.d("    patching entry name:'%s' size:%d mode:'%v' typeflag:'%v' with files: %s", h.Name, h.Size, h.Mode, h.Typeflag, strings.Join(patchfiles, ", "))
+		k.l("\nPatching %s", h.Name)
+
+		if h.Typeflag != tar.TypeReg {
+			k.d("    --> could not patch: not a regular file")
+			return nil, fmt.Errorf("could not patch file '%s': not a regular file", h.Name)
+		}
+
+		k.d("        reading entry contents")
+		buf, err := ioutil.ReadAll(tr)
+		if err != nil {
+			k.d("    --> could not patch: could not read contents: %v", err)
+			return nil, wrap(err, "could not patch file '%s': could not read contents", h.Name)
+		}
+		getBuf := func() []byte {
+			nbuf := make([]byte, len(buf))
+			copy(nbuf, buf)
+			return nbuf
+		}
+
+		for _, pfn := range patchfiles {
+			k.d("        loading patch file '%s' (detected format %s)", pfn, getFormat(pfn))
+			if getFormat(pfn) != "kobopatch" {
+				k.d("        --> format not kobopatch")
+				return nil, errors.New("patch testing only works with kobopatch format patches")
+			}
+			ps, err := patchfile.ReadFromFile(getFormat(pfn), pfn)
+			if err != nil {
+				k.d("        --> %v", err)
+				return nil, wrap(err, "could not load patch file '%s'", pfn)
+			}
+
+			k.d("        validating patch file")
+			if err := ps.Validate(); err != nil {
+				k.d("        --> %v", err)
+				return nil, wrap(err, "invalid patch file '%s'", pfn)
+			}
+
+			pf := reflect.ValueOf(ps).Interface().(*kobopatch.PatchSet)
+			res[pfn] = map[string]error{}
+
+			sortedNames := []string{}
+			for name := range *pf {
+				sortedNames = append(sortedNames, name)
+			}
+			sort.Strings(sortedNames)
+
+			errs := map[string]error{}
+			for _, name := range sortedNames {
+				fmt.Printf(" -  %s", name)
+				err := errors.New("no such patch")
+				for pname, instructions := range *pf {
+					for _, instruction := range instructions {
+						if instruction.Enabled != nil {
+							*instruction.Enabled = pname == name
+							err = nil
+							break
+						}
+					}
+				}
+				if err != nil {
+					fmt.Printf("\r ✕  %s\n", name)
+					errs[name] = err
+					res[pfn][name] = err
+					continue
+				}
+				out := os.Stdout
+				os.Stdout = nil
+				if err := ps.ApplyTo(patchlib.NewPatcher(getBuf())); err != nil {
+					os.Stdout = out
+					fmt.Printf("\r ✕  %s\n", name)
+					errs[name] = err
+					res[pfn][name] = err
+					continue
+				}
+				os.Stdout = out
+				if err := ps.SetEnabled(name, false); err != nil {
+					fmt.Printf("\r ✕  %s\n", name)
+					errs[name] = err
+					res[pfn][name] = err
+					continue
+				}
+				fmt.Printf("\r ✔  %s\n", name)
+				res[pfn][name] = nil
+			}
+		}
+	}
+
+	k.dp("  | ", "%s", jm(res))
+
+	return res, nil
 }
 
 func (k *KoboPatch) l(format string, a ...interface{}) {

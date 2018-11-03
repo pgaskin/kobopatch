@@ -73,6 +73,15 @@ func main() {
 		conf = pflag.Arg(0)
 	}
 
+	if *fw != "" {
+		var err error
+		*fw, err = filepath.Abs(*fw)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: could not resolve path to firmware file: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	k.Logf("Loading configuration from %s", conf)
 	if conf == "-" {
 		err := k.LoadConfig(os.Stdin)
@@ -82,6 +91,7 @@ func main() {
 			return
 		}
 	} else {
+		os.Chdir(filepath.Dir(conf))
 		f, err := os.Open(conf)
 		if err != nil {
 			k.Errorf("Error: could not load config file: %v", err)

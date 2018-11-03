@@ -321,6 +321,9 @@ func (k *KoboPatch) ApplyPatches() error {
 		patchfiles := []string{}
 		for n, f := range k.Config.Patches {
 			if h.Name == "./"+f || h.Name == f || filepath.Base(f) == h.Name {
+				if filepath.Base(f) == h.Name { // from testdata tarball
+					h.Name = "./" + f
+				}
 				patchfiles = append(patchfiles, n)
 			}
 		}

@@ -90,16 +90,4 @@ if [[ "$SKIP_UPLOAD" != "true" ]]; then
             --file "$f" \
             --replace
     done
-
-    for f in converter/out/kobopatch*;do 
-        fn="$(basename $f)"
-        echo "Uploading $fn"
-        GITHUB_TOKEN=$GITHUB_TOKEN github-release upload \
-            --user geek1011 \
-            --repo kobopatch \
-            --tag $APP_VERSION \
-            --name "$fn" \
-            --file "$f" \
-            --replace
-    done
 fi

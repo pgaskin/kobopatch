@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/geek1011/kobopatch/patchlib"
+	"github.com/xi2/xz"
 
 	"github.com/geek1011/kobopatch/patchfile"
 	"github.com/geek1011/kobopatch/patchfile/kobopatch"
@@ -33,7 +34,7 @@ var version = "unknown"
 
 func main() {
 	help := pflag.BoolP("help", "h", false, "show this help text")
-	fw := pflag.StringP("firmware", "f", "", "firmware file to be used")
+	fw := pflag.StringP("firmware", "f", "", "firmware file to be used (can also use a testdata tarball from kobopatch-patches)")
 	t := pflag.BoolP("run-tests", "t", false, "test all patches (instead of running kobopatch)")
 	pflag.Parse()
 
@@ -302,45 +303,11 @@ func (k *KoboPatch) LoadConfig(r io.Reader) error {
 func (k *KoboPatch) ApplyPatches() error {
 	k.d("\n\nKoboPatch::ApplyPatches")
 
-	k.l("Reading input firmware zip")
-	k.d("Opening firmware zip '%s'", k.Config.In)
-
-	zr, err := zip.OpenReader(k.Config.In)
+	tr, closeAll, err := k.openIn()
 	if err != nil {
-		k.d("--> %v", err)
-		return wrap(err, "could not open firmware zip")
+		return err
 	}
-
-	k.d("Looking for KoboRoot.tgz in zip")
-	var kr io.ReadCloser
-	for _, f := range zr.File {
-		k.d("--> found %s", f.Name)
-		if f.Name == "KoboRoot.tgz" {
-			k.d("-->    opening KoboRoot.tgz")
-			kr, err = f.Open()
-			if err != nil {
-				k.d("-->    --> %v", err)
-				return wrap(err, "could not open KoboRoot.tgz in firmware zip")
-			}
-			break
-		}
-	}
-	if kr == nil {
-		k.d("--> could not find KoboRoot.tgz")
-		return errors.New("could not find KoboRoot.tgz")
-	}
-	defer kr.Close()
-
-	k.d("Opening gzip reader")
-	gzr, err := gzip.NewReader(kr)
-	if err != nil {
-		k.d("--> %v", err)
-		return wrap(err, "could not decompress KoboRoot.tgz")
-	}
-	defer gzr.Close()
-
-	k.d("Creating tar reader")
-	tr := tar.NewReader(gzr)
+	defer closeAll()
 
 	for {
 		h, err := tr.Next()
@@ -353,7 +320,7 @@ func (k *KoboPatch) ApplyPatches() error {
 
 		patchfiles := []string{}
 		for n, f := range k.Config.Patches {
-			if h.Name == "./"+f || h.Name == f {
+			if h.Name == "./"+f || h.Name == f || filepath.Base(f) == h.Name {
 				patchfiles = append(patchfiles, n)
 			}
 		}
@@ -602,45 +569,11 @@ func (k *KoboPatch) RunPatchTests() (map[string]map[string]error, error) {
 
 	res := map[string]map[string]error{}
 
-	k.l("Reading input firmware zip")
-	k.d("Opening firmware zip '%s'", k.Config.In)
-
-	zr, err := zip.OpenReader(k.Config.In)
+	tr, closeAll, err := k.openIn()
 	if err != nil {
-		k.d("--> %v", err)
-		return nil, wrap(err, "could not open firmware zip")
+		return nil, err
 	}
-
-	k.d("Looking for KoboRoot.tgz in zip")
-	var kr io.ReadCloser
-	for _, f := range zr.File {
-		k.d("--> found %s", f.Name)
-		if f.Name == "KoboRoot.tgz" {
-			k.d("-->    opening KoboRoot.tgz")
-			kr, err = f.Open()
-			if err != nil {
-				k.d("-->    --> %v", err)
-				return nil, wrap(err, "could not open KoboRoot.tgz in firmware zip")
-			}
-			break
-		}
-	}
-	if kr == nil {
-		k.d("--> could not find KoboRoot.tgz")
-		return nil, errors.New("could not find KoboRoot.tgz")
-	}
-	defer kr.Close()
-
-	k.d("Opening gzip reader")
-	gzr, err := gzip.NewReader(kr)
-	if err != nil {
-		k.d("--> %v", err)
-		return nil, wrap(err, "could not decompress KoboRoot.tgz")
-	}
-	defer gzr.Close()
-
-	k.d("Creating tar reader")
-	tr := tar.NewReader(gzr)
+	defer closeAll()
 
 	for {
 		h, err := tr.Next()
@@ -653,7 +586,7 @@ func (k *KoboPatch) RunPatchTests() (map[string]map[string]error, error) {
 
 		patchfiles := []string{}
 		for n, f := range k.Config.Patches {
-			if h.Name == "./"+f || h.Name == f {
+			if h.Name == "./"+f || h.Name == f || filepath.Base(f) == h.Name {
 				patchfiles = append(patchfiles, n)
 			}
 		}
@@ -753,6 +686,75 @@ func (k *KoboPatch) RunPatchTests() (map[string]map[string]error, error) {
 	k.dp("  | ", "%s", jm(res))
 
 	return res, nil
+}
+
+func (k *KoboPatch) openIn() (*tar.Reader, func(), error) {
+	k.d("    KoboPatch::openIn")
+	closeReaders := func() {}
+	var tbr io.Reader
+	if strings.HasSuffix(k.Config.In, ".tar.xz") {
+		k.l("        Reading input firmware testdata tarball")
+		k.d("        Opening testdata tarball '%s'", k.Config.In)
+
+		f, err := os.Open(k.Config.In)
+		if err != nil {
+			k.d("        --> %v", err)
+			return nil, closeReaders, wrap(err, "could not open firmware tarball")
+		}
+
+		xzr, err := xz.NewReader(f, 0)
+		if err != nil {
+			k.d("        --> %v", err)
+			f.Close()
+			return nil, closeReaders, wrap(err, "could not open firmware tarball as xz")
+		}
+		tbr = xzr
+		closeReaders = func() { f.Close() }
+	} else {
+		k.l("        Reading input firmware zip")
+		k.d("        Opening firmware zip '%s'", k.Config.In)
+
+		zr, err := zip.OpenReader(k.Config.In)
+		if err != nil {
+			k.d("        --> %v", err)
+			return nil, closeReaders, wrap(err, "could not open firmware zip")
+		}
+
+		k.d("        Looking for KoboRoot.tgz in zip")
+		var kr io.ReadCloser
+		for _, f := range zr.File {
+			k.d("        --> found %s", f.Name)
+			if f.Name == "KoboRoot.tgz" {
+				k.d("        -->    opening KoboRoot.tgz")
+				kr, err = f.Open()
+				if err != nil {
+					k.d("        -->    --> %v", err)
+					return nil, closeReaders, wrap(err, "could not open KoboRoot.tgz in firmware zip")
+				}
+				break
+			}
+		}
+		if kr == nil {
+			k.d("        --> could not find KoboRoot.tgz")
+			return nil, closeReaders, errors.New("could not find KoboRoot.tgz")
+		}
+
+		k.d("        Opening gzip reader")
+		gzr, err := gzip.NewReader(kr)
+		if err != nil {
+			k.d("        --> %v", err)
+			kr.Close()
+			return nil, closeReaders, wrap(err, "could not decompress KoboRoot.tgz")
+		}
+		tbr = gzr
+		closeReaders = func() {
+			gzr.Close()
+			kr.Close()
+		}
+	}
+
+	k.d("        Creating tar reader")
+	return tar.NewReader(tbr), closeReaders, nil
 }
 
 func (k *KoboPatch) l(format string, a ...interface{}) {

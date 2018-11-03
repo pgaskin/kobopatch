@@ -394,7 +394,11 @@ func (k *KoboPatch) ApplyPatches() error {
 				k.l("  Applying overrides")
 				k.d("        applying overrides")
 				for on, os := range o {
-					k.l("    %s -> %t", on, os)
+					if os {
+						k.l("    ENABLE  `%s`", on)
+					} else {
+						k.l("    DISABLE `%s`", on)
+					}
 					k.d("            override %s -> enabled:%t", on, os)
 					if err := ps.SetEnabled(on, os); err != nil {
 						k.d("            --> %v", err)
@@ -477,7 +481,7 @@ func (k *KoboPatch) ApplyTranslations() error {
 		}
 
 		for ts, qm := range k.Config.Translations {
-			k.l("  Processing %s", ts)
+			k.l("  LRELEASE  %s", ts)
 			k.d("    processing '%s' -> '%s'", ts, qm)
 			if !strings.HasPrefix(qm, "usr/local/Kobo/translations/") {
 				err = errors.New("output for translation must start with usr/local/Kobo/translations/")
@@ -550,7 +554,7 @@ func (k *KoboPatch) ApplyFiles() error {
 	if len(k.Config.Files) >= 1 {
 		k.l("\nAdding additional files")
 		for src, dest := range k.Config.Files {
-			k.l("  Adding %s", src)
+			k.l("  ADD  %s", src)
 			k.d("    %s -> %s", src, dest)
 			if strings.HasPrefix(dest, "/") {
 				k.d("    --> destination must not start with a slash")

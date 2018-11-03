@@ -220,7 +220,7 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 	}
 
 	patchfile.Log("looping over patches\n")
-	num, total := 0, len(*ps)
+	num := 0
 	for n, p := range *ps {
 		var err error
 		num++
@@ -238,12 +238,12 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 
 		if !enabled {
 			patchfile.Log("  skipping patch `%s`\n", n)
-			fmt.Printf("  [%d/%d] Skipping disabled patch `%s`\n", num, total, n)
+			fmt.Printf("  SKIP  `%s`\n", n)
 			continue
 		}
 
 		patchfile.Log("  applying patch `%s`\n", n)
-		fmt.Printf("  [%d/%d] Applying patch `%s`\n", num, total, n)
+		fmt.Printf("  APPLY `%s`\n", n)
 
 		patchfile.Log("looping over instructions\n")
 		for _, i := range p {

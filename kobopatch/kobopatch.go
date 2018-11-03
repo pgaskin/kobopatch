@@ -693,7 +693,7 @@ func (k *KoboPatch) openIn() (*tar.Reader, func(), error) {
 	closeReaders := func() {}
 	var tbr io.Reader
 	if strings.HasSuffix(k.Config.In, ".tar.xz") {
-		k.l("        Reading input firmware testdata tarball")
+		k.l("Reading input firmware testdata tarball")
 		k.d("        Opening testdata tarball '%s'", k.Config.In)
 
 		f, err := os.Open(k.Config.In)
@@ -711,7 +711,7 @@ func (k *KoboPatch) openIn() (*tar.Reader, func(), error) {
 		tbr = xzr
 		closeReaders = func() { f.Close() }
 	} else {
-		k.l("        Reading input firmware zip")
+		k.l("Reading input firmware zip")
 		k.d("        Opening firmware zip '%s'", k.Config.In)
 
 		zr, err := zip.OpenReader(k.Config.In)

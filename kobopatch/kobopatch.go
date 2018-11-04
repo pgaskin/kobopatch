@@ -210,7 +210,7 @@ type Config struct {
 	Overrides    map[string]map[string]bool
 	Lrelease     string
 	Translations map[string]string
-	Files        map[string]string
+	Files        map[string]stringSlice
 }
 
 func (k *KoboPatch) OutputInit() {
@@ -533,45 +533,47 @@ func (k *KoboPatch) ApplyFiles() error {
 	k.d("\n\nKoboPatch::ApplyFiles")
 	if len(k.Config.Files) >= 1 {
 		k.l("\nAdding additional files")
-		for src, dest := range k.Config.Files {
-			k.l("  ADD  %s", src)
-			k.d("    %s -> %s", src, dest)
-			if strings.HasPrefix(dest, "/") {
-				k.d("    --> destination must not start with a slash")
-				return errors.New("could not add file: destination must not start with a slash")
-			}
+		for src, dests := range k.Config.Files {
+			for _, dest := range dests {
+				k.l("  ADD  %-25s  TO  %s", src, dest)
+				k.d("    %s -> %s", src, dest)
+				if strings.HasPrefix(dest, "/") {
+					k.d("    --> destination must not start with a slash")
+					return errors.New("could not add file: destination must not start with a slash")
+				}
 
-			k.d("        reading file")
-			buf, err := ioutil.ReadFile(src)
-			if err != nil {
-				k.d("    --> %v", err)
-				return wrap(err, "could not read additional file '%s'", src)
-			}
+				k.d("        reading file")
+				buf, err := ioutil.ReadFile(src)
+				if err != nil {
+					k.d("    --> %v", err)
+					return wrap(err, "could not read additional file '%s'", src)
+				}
 
-			k.d("        writing header")
-			err = k.outTar.WriteHeader(&tar.Header{
-				Typeflag: tar.TypeReg,
-				Name:     "./" + dest,
-				Mode:     0777,
-				Uid:      0,
-				Gid:      0,
-				ModTime:  time.Now(),
-				Size:     int64(len(buf)),
-			})
-			if err != nil {
-				k.d("    --> %v", err)
-				return wrap(err, "could not write additional file to KoboRoot.tgz")
-			}
+				k.d("        writing header")
+				err = k.outTar.WriteHeader(&tar.Header{
+					Typeflag: tar.TypeReg,
+					Name:     "./" + dest,
+					Mode:     0777,
+					Uid:      0,
+					Gid:      0,
+					ModTime:  time.Now(),
+					Size:     int64(len(buf)),
+				})
+				if err != nil {
+					k.d("    --> %v", err)
+					return wrap(err, "could not write additional file to KoboRoot.tgz")
+				}
 
-			k.d("        writing file")
-			if i, err := k.outTar.Write(buf); err != nil {
-				k.d("    --> %v", err)
-				return wrap(err, "error writing additional file to KoboRoot.tgz")
-			} else if i != len(buf) {
-				k.d("    --> error writing additional file to KoboRoot.tgz")
-				return errors.New("error writing additional file to KoboRoot.tgz")
+				k.d("        writing file")
+				if i, err := k.outTar.Write(buf); err != nil {
+					k.d("    --> %v", err)
+					return wrap(err, "error writing additional file to KoboRoot.tgz")
+				} else if i != len(buf) {
+					k.d("    --> error writing additional file to KoboRoot.tgz")
+					return errors.New("error writing additional file to KoboRoot.tgz")
+				}
+				k.outTarExpectedSize += int64(len(buf))
 			}
-			k.outTarExpectedSize += int64(len(buf))
 		}
 	}
 	return nil
@@ -808,4 +810,22 @@ func getFormat(filename string) string {
 	f = strings.Replace(f, "patch", "patch32lsb", -1)
 	f = strings.Replace(f, "yaml", "kobopatch", -1)
 	return f
+}
+
+// stringArray forces strings to become arrays during yaml decoding.
+type stringSlice []string
+
+// UnmarshalYAML unmarshals a stringArray.
+func (a *stringSlice) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var strings []string
+	if err := unmarshal(&strings); err != nil {
+		var str string
+		if err := unmarshal(&str); err != nil {
+			return err
+		}
+		*a = []string{str}
+	} else {
+		*a = strings
+	}
+	return nil
 }

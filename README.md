@@ -34,5 +34,5 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - No need for temp files
 - Save and restore lists of enabled patches
 - Translation file support
-- more (coming soon)
-- Zlib support (coming soon)
+- more
+- Zlib support

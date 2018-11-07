@@ -25,13 +25,15 @@ type instruction struct {
 	FindZlib              *string `yaml:"FindZlib,omitempty"`
 	FindZlibHash          *string `yaml:"FindZlibHash,omitempty"`
 	FindReplaceString     *struct {
-		Find    string `yaml:"Find,omitempty"`
-		Replace string `yaml:"Replace,omitempty"`
+		Find            string `yaml:"Find,omitempty"`
+		Replace         string `yaml:"Replace,omitempty"`
+		MustMatchLength bool   `yaml:"MustMatchLength,omitempty"`
 	} `yaml:"FindReplaceString,omitempty"`
 	ReplaceString *struct {
-		Offset  int32  `yaml:"Offset,omitempty"`
-		Find    string `yaml:"Find,omitempty"`
-		Replace string `yaml:"Replace,omitempty"`
+		Offset          int32  `yaml:"Offset,omitempty"`
+		Find            string `yaml:"Find,omitempty"`
+		Replace         string `yaml:"Replace,omitempty"`
+		MustMatchLength bool   `yaml:"MustMatchLength,omitempty"`
 	} `yaml:"ReplaceString,omitempty"`
 	ReplaceInt *struct {
 		Offset  int32 `yaml:"Offset,omitempty"`
@@ -157,10 +159,20 @@ func (ps *PatchSet) Validate() error {
 			if i.ReplaceString != nil {
 				ic++
 				roc++
+				if i.ReplaceString.MustMatchLength {
+					if len(i.ReplaceString.Find) != len(i.ReplaceString.Replace) {
+						return errors.Errorf("length of strings must match (and not be shorter) in `%s`", n)
+					}
+				}
 			}
 			if i.FindReplaceString != nil {
 				ic++
 				roc++
+				if i.FindReplaceString.MustMatchLength {
+					if len(i.FindReplaceString.Find) != len(i.FindReplaceString.Replace) {
+						return errors.Errorf("length of strings must match (and not be shorter) in `%s`", n)
+					}
+				}
 			}
 			if i.FindZlib != nil {
 				ic++

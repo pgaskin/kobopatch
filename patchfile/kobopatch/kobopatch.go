@@ -160,8 +160,10 @@ func (ps *PatchSet) Validate() error {
 				ic++
 				roc++
 				if i.ReplaceString.MustMatchLength {
-					if len(i.ReplaceString.Find) != len(i.ReplaceString.Replace) {
-						return errors.Errorf("i%d: length of strings must match (and not be shorter) in `%s`", instn+1, n)
+					if len(i.ReplaceString.Find) < len(i.ReplaceString.Replace) {
+						return errors.Errorf("i%d: replacement string must not be shorter in `%s`", instn+1, n)
+					} else if len(i.ReplaceString.Find) > len(i.ReplaceString.Replace) {
+						return errors.Errorf("i%d: replacement string too long in `%s`", instn+1, n)
 					}
 				}
 			}

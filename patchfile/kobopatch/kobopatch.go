@@ -118,7 +118,7 @@ func (ps *PatchSet) Validate() error {
 		roc := 0
 		fbsc := 0
 
-		for _, i := range p {
+		for instn, i := range p {
 			ic := 0
 			if i.Enabled != nil {
 				ec++
@@ -161,7 +161,7 @@ func (ps *PatchSet) Validate() error {
 				roc++
 				if i.ReplaceString.MustMatchLength {
 					if len(i.ReplaceString.Find) != len(i.ReplaceString.Replace) {
-						return errors.Errorf("length of strings must match (and not be shorter) in `%s`", n)
+						return errors.Errorf("i%d: length of strings must match (and not be shorter) in `%s`", instn+1, n)
 					}
 				}
 			}
@@ -170,7 +170,7 @@ func (ps *PatchSet) Validate() error {
 				roc++
 				if i.FindReplaceString.MustMatchLength {
 					if len(i.FindReplaceString.Find) != len(i.FindReplaceString.Replace) {
-						return errors.Errorf("length of strings must match (and not be shorter) in `%s`", n)
+						return errors.Errorf("i%d: length of strings must match (and not be shorter) in `%s`", instn+1, n)
 					}
 				}
 			}
@@ -182,7 +182,7 @@ func (ps *PatchSet) Validate() error {
 				ic++
 				roc++
 				if len(*i.FindZlibHash) != 40 {
-					return errors.Errorf("hash must be 40 chars in FindZlibHash in `%s`", n)
+					return errors.Errorf("i%d: hash must be 40 chars in FindZlibHash in `%s`", instn+1, n)
 				}
 			}
 			if i.ReplaceZlib != nil {
@@ -190,10 +190,10 @@ func (ps *PatchSet) Validate() error {
 				roc++
 			}
 			if ic < 1 {
-				return errors.Errorf("internal error while validating `%s` (you should report this as a bug)", n)
+				return errors.Errorf("i%d: internal error while validating `%s` (you should report this as a bug)", instn+1, n)
 			}
 			if ic > 1 {
-				return errors.Errorf("more than one instruction per bullet in patch `%s` (you might be missing a -)", n)
+				return errors.Errorf("i%d: more than one instruction per bullet in patch `%s` (you might be missing a -)", instn+1, n)
 			}
 		}
 		if ec < 1 {
@@ -258,7 +258,7 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 		fmt.Printf("  APPLY `%s`\n", n)
 
 		patchfile.Log("looping over instructions\n")
-		for _, i := range p {
+		for instn, i := range p {
 			switch {
 			case i.Enabled != nil || i.PatchGroup != nil || i.Description != nil:
 				patchfile.Log("  skipping non-instruction Enabled(), PatchGroup() or Description()\n")
@@ -326,8 +326,8 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 			}
 
 			if err != nil {
-				patchfile.Log("could not apply patch: %v\n", err)
-				fmt.Printf("    Error: could not apply patch: %v\n", err)
+				patchfile.Log("could not apply patch: i%d: %v\n", instn+1, err)
+				fmt.Printf("    Error: i%d: could not apply patch: %v\n", instn+1, err)
 				return err
 			}
 		}

@@ -179,13 +179,16 @@ func (p *Patcher) FindZlibHash(hash string) error {
 
 // ReplaceZlib replaces a part of a zlib css stream at the current offset.
 func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
-	return p.ReplaceZlibGroup(offset, []struct{ find, replace string }{{find, replace}})
+	return p.ReplaceZlibGroup(offset, []Replacement{{find, replace}})
+}
+
+// Replacement is a replacement for ReplaceZlibGroup.
+type Replacement struct {
+	Find, Replace string
 }
 
 // ReplaceZlibGroup is the same as ReplaceZlib, but it replaces all at once.
-func (p *Patcher) ReplaceZlibGroup(offset int32, repl []struct {
-	find, replace string
-}) error {
+func (p *Patcher) ReplaceZlibGroup(offset int32, repl []Replacement) error {
 	if !bytes.HasPrefix(p.buf[p.cur+offset:p.cur+offset+2], []byte{0x78, 0x9c}) {
 		return errors.New("ReplaceZlib: not a zlib stream")
 	}
@@ -206,7 +209,7 @@ func (p *Patcher) ReplaceZlibGroup(offset int32, repl []struct {
 		return errors.New("ReplaceZlib: sanity check failed: recompressed original data does not match original (this is a bug, so please report it)")
 	}
 	for _, r := range repl {
-		find, replace := r.find, r.replace
+		find, replace := r.Find, r.Replace
 		if !bytes.Contains(dbuf, []byte(find)) {
 			find = strings.Replace(find, "\n    ", "\n", -1)
 			find = strings.Replace(find, "\n  ", "\n", -1)

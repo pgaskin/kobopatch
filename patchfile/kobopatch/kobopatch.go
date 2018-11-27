@@ -343,6 +343,14 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				r := *i.ReplaceZlib
 				patchfile.Log("  ReplaceZlib(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceZlib(r.Offset, r.Find, r.Replace)
+			case i.ReplaceZlibGroup != nil:
+				r := *i.ReplaceZlibGroup
+				patchfile.Log("  ReplaceZlibGroup(%#v, %#v)\n", r.Offset, r.Replacements)
+				rs := []patchlib.Replacement{}
+				for _, rr := range r.Replacements {
+					rs = append(rs, patchlib.Replacement{Find: rr.Find, Replace: rr.Replace})
+				}
+				err = pt.ReplaceZlibGroup(r.Offset, rs)
 			default:
 				patchfile.Log("  invalid instruction: %#v\n", i)
 				err = errors.Errorf("invalid instruction: %#v", i)

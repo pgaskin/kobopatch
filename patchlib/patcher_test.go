@@ -116,16 +116,16 @@ func TestZlib(t *testing.T) {
 	nerr(t, p.ReplaceZlib(0, "qproperty-visible: true;", "qproperty-visible: ALongString;")) // should also find string due to accomodations for minification.
 	nerr(t, p.ReplaceZlib(0, "qproperty-visible: ALongString;", "qproperty-visible: true;"))
 
-	err(t, p.ReplaceZlibGroup(0, []struct{ find, replace string }{
+	err(t, p.ReplaceZlibGroup(0, []Replacement{
 		{"qproperty-visible: true;", "qproperty-visible:true; a really long string which is way too long to possibly fit asndkjas aksjndkajsnd kajsnjkwjnw akjnwr kejnskr fjsdndf ksjdndkf jsd"},
 	}))
 
-	nerr(t, p.ReplaceZlibGroup(0, []struct{ find, replace string }{
+	nerr(t, p.ReplaceZlibGroup(0, []Replacement{
 		{"qproperty-visible: true;", "qproperty-visible:true; a really long string which is way too long to possibly fit asndkjas aksjndkajsnd kajsnjkwjnw akjnwr kejnskr fjsdndf ksjdndkf jsd"},
 		{"qproperty-visible:true; a really long string which is way too long to possibly fit asndkjas aksjndkajsnd kajsnjkwjnw akjnwr kejnskr fjsdndf ksjdndkf jsd", "qproperty-visible: true;"},
 	})) // should correctly replace groups, and only return an error if the final result is too long
 
-	nerr(t, p.ReplaceZlibGroup(0, []struct{ find, replace string }{
+	nerr(t, p.ReplaceZlibGroup(0, []Replacement{
 		{"qproperty-visible: true;", "qproperty-visible:true; a really long string which is way too long to possibly fit asndkjas aksjndkajsnd kajsnjkwjnw akjnwr kejnskr fjsdndf ksjdndkf jsd"},
 		{"qproperty-visible:true; a really long string which is way too long to possibly fit asndkjas aksjndkajsnd kajsnjkwjnw akjnwr kejnskr fjsdndf ksjdndkf jsd", "qproperty-visible: true;"},
 	})) // making sure the previous one was processed correctly (it does then undoes the change)

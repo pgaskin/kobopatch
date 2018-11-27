@@ -57,6 +57,13 @@ type instruction struct {
 		Find    string `yaml:"Find,omitempty"`
 		Replace string `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceZlib,omitempty"`
+	ReplaceZlibGroup *struct {
+		Offset       int32 `yaml:"Offset,omitempty"`
+		Replacements []struct {
+			Find    string `yaml:"Find,omitempty"`
+			Replace string `yaml:"Replace,omitempty"`
+		} `yaml:"Replacements,omitempty"`
+	} `yaml:"ReplaceZlibGroup,omitempty"`
 }
 
 // Parse parses a PatchSet from a buf.
@@ -190,6 +197,20 @@ func (ps *PatchSet) Validate() error {
 			if i.ReplaceZlib != nil {
 				ic++
 				roc++
+			}
+			if i.ReplaceZlibGroup != nil {
+				ic++
+				roc++
+				if len((*i.ReplaceZlibGroup).Replacements) < 1 {
+					return errors.Errorf("i%d: no replacements in ReplaceZlibGroup instruction", instn+1)
+				}
+				for _, r := range (*i.ReplaceZlibGroup).Replacements {
+					if r.Find == "" {
+						return errors.Errorf("i%d: find is required in replacement in ReplaceZlibGroup instruction", instn+1)
+					} else if r.Replace == "" {
+						return errors.Errorf("i%d: replace is required in replacement in ReplaceZlibGroup instruction", instn+1)
+					}
+				}
 			}
 			if ic < 1 {
 				return errors.Errorf("i%d: internal error while validating `%s` (you should report this as a bug)", instn+1, n)

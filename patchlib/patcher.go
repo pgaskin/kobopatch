@@ -179,6 +179,13 @@ func (p *Patcher) FindZlibHash(hash string) error {
 
 // ReplaceZlib replaces a part of a zlib css stream at the current offset.
 func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
+	return p.ReplaceZlibGroup(offset, []struct{ find, replace string }{{find, replace}})
+}
+
+// ReplaceZlibGroup is the same as ReplaceZlib, but it replaces all at once.
+func (p *Patcher) ReplaceZlibGroup(offset int32, repl []struct {
+	find, replace string
+}) error {
 	if !bytes.HasPrefix(p.buf[p.cur+offset:p.cur+offset+2], []byte{0x78, 0x9c}) {
 		return errors.New("ReplaceZlib: not a zlib stream")
 	}
@@ -198,24 +205,27 @@ func (p *Patcher) ReplaceZlib(offset int32, find, replace string) error {
 	if !bytes.HasPrefix(p.buf[p.cur+offset:], tbuf) || len(tbuf) < 4 {
 		return errors.New("ReplaceZlib: sanity check failed: recompressed original data does not match original (this is a bug, so please report it)")
 	}
-	if !bytes.Contains(dbuf, []byte(find)) {
-		find = strings.Replace(find, "\n    ", "\n", -1)
-		find = strings.Replace(find, "\n  ", "\n", -1)
-		find = strings.Replace(find, "\n ", "\n", -1)
+	for _, r := range repl {
+		find, replace := r.find, r.replace
 		if !bytes.Contains(dbuf, []byte(find)) {
-			find = strings.Replace(find, ": ", ":", -1)
-			find = strings.Replace(find, " {", "{", -1)
+			find = strings.Replace(find, "\n    ", "\n", -1)
+			find = strings.Replace(find, "\n  ", "\n", -1)
+			find = strings.Replace(find, "\n ", "\n", -1)
 			if !bytes.Contains(dbuf, []byte(find)) {
-				find = strings.Replace(find, "\n", "", -1)
-				find = strings.Replace(find, "; ", ";", -1)
-				find = strings.Replace(find, "{ ", "{", -1)
+				find = strings.Replace(find, ": ", ":", -1)
+				find = strings.Replace(find, " {", "{", -1)
 				if !bytes.Contains(dbuf, []byte(find)) {
-					return errors.Errorf("ReplaceZlib: find string not found in stream (%s)", strings.Replace(find, "\n", "\\n", -1))
+					find = strings.Replace(find, "\n", "", -1)
+					find = strings.Replace(find, "; ", ";", -1)
+					find = strings.Replace(find, "{ ", "{", -1)
+					if !bytes.Contains(dbuf, []byte(find)) {
+						return errors.Errorf("ReplaceZlib: find string not found in stream (%s)", strings.Replace(find, "\n", "\\n", -1))
+					}
 				}
 			}
 		}
+		dbuf = bytes.Replace(dbuf, []byte(find), []byte(replace), -1)
 	}
-	dbuf = bytes.Replace(dbuf, []byte(find), []byte(replace), -1)
 	nbuf := compress(dbuf)
 	if len(nbuf) == 0 {
 		return errors.New("ReplaceZlib: error compressing new data (this is a bug, so please report it)")

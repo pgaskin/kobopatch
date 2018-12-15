@@ -27,10 +27,10 @@
 			"revisionTime": "2016-01-10T10:55:54Z"
 		},
 		{
-			"checksumSHA1": "OJI0OgC5V8gZtfS1e0CDYMhkDNc=",
+			"checksumSHA1": "0N7aKMJLuHnANO4QKpQlBBWbyvM=",
 			"path": "github.com/spf13/pflag",
-			"revision": "3ebe029320b2676d667ae88da602a5f854788a8a",
-			"revisionTime": "2018-06-01T13:25:42Z"
+			"revision": "916c5bf2d89aff6fd3e10e7811337218dfa81cb5",
+			"revisionTime": "2018-12-12T14:01:01Z"
 		},
 		{
 			"checksumSHA1": "6LwXZI7kXm1C0h4Ui0Y52p9uQhk=",
@@ -45,10 +45,10 @@
 			"revisionTime": "2017-12-30T12:00:15Z"
 		},
 		{
-			"checksumSHA1": "ZSWoOPUNRr5+3dhkLK3C4cZAQPk=",
+			"checksumSHA1": "QqDq2x8XOU7IoOR98Cx1eiV5QY8=",
 			"path": "gopkg.in/yaml.v2",
-			"revision": "5420a8b6744d3b0345ab293f6fcba19c978f1183",
-			"revisionTime": "2018-03-28T19:50:20Z"
+			"revision": "51d6538a90f86fe93ac480b35f37b2be17fef232",
+			"revisionTime": "2018-11-15T11:05:04Z"
 		}
 	],
 	"rootPath": "github.com/geek1011/kobopatch"

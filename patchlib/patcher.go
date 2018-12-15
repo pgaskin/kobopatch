@@ -269,6 +269,7 @@ func (p *Patcher) ReplaceZlibGroup(offset int32, repl []Replacement) error {
 	return nil
 }
 
+// ZlibItem is a CSS zlib stream.
 type ZlibItem struct {
 	Offset int32
 	CSS    string

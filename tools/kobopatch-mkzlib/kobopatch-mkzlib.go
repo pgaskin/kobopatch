@@ -117,8 +117,8 @@ func main() {
 	replacements := []replacement{}
 	for i := range ibuf {
 		if ibuf[i] != obuf[i] {
-			if cur := len(replacements) - 1; cur > -1 && replacements[cur].Offset == i-len(replacements[cur].Find) && len(replacements[cur].Find) < 10 {
-				// Right after previous replacement and previous replacement less than 10 bytes long.
+			if cur := len(replacements) - 1; cur > -1 && replacements[cur].Offset == i-len(replacements[cur].Find) && len(replacements[cur].Find) < 15 {
+				// Right after previous replacement and previous replacement less than 15 bytes long.
 				replacements[cur].Find = append(replacements[cur].Find, ibuf[i])
 				replacements[cur].Replace = append(replacements[cur].Replace, obuf[i])
 			} else {
@@ -128,6 +128,10 @@ func main() {
 					Replace: []byte{obuf[i]},
 				})
 			}
+		} else if cur := len(replacements) - 1; cur > -1 && i+1 < len(ibuf) && ibuf[i-1] != obuf[i-1] && ibuf[i] == obuf[i] && ibuf[i+1] != obuf[i+1] && len(replacements[cur].Find) < 15 {
+			// Only a 1 byte difference separating replacements and previous replacement less than 15 bytes long.
+			replacements[cur].Find = append(replacements[cur].Find, ibuf[i])
+			replacements[cur].Replace = append(replacements[cur].Replace, obuf[i])
 		}
 	}
 	outf("base_address = 0")

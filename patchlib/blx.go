@@ -13,8 +13,7 @@ func blx(pc, target uint32) uint32 {
 	imm10h := getBits(offset, 12, 21)
 	imm10l := getBits(offset, 2, 11)
 
-	j1, j2 := i1^1, i2^1
-	j1, j2 = j1^s, j2^s
+	j1, j2 := (i1^1)^s, (i2^1)^s
 
 	var inst uint32
 	inst = setBits(inst, 27, 0x1e, 5)    // bits 27-31 = 0b11110
@@ -27,10 +26,7 @@ func blx(pc, target uint32) uint32 {
 	inst = setBits(inst, 1, imm10l, 10)  // imm10l
 	inst = setBit(inst, 0, false)        // last bit
 
-	top, bot := 0xffff0000&uint32(inst), 0x0000ffff&uint32(inst)
-	top, bot = uint32(swapBytes(uint16(top>>16))), uint32(swapBytes(uint16(bot)))
-
-	return uint32(top)<<16 | uint32(bot)
+	return uint32(swapBytes(uint16((0xffff0000&inst)>>16)))<<16 | uint32(swapBytes(uint16(0x0000ffff&inst)))
 }
 
 // BLX assembles a BLX instruction and returns a byte slice which
@@ -40,8 +36,7 @@ func BLX(pc, target uint32) []byte {
 }
 
 func swapBytes(word uint16) uint16 {
-	a, b := word&0x00ff, word&0xff00
-	return a<<8 | b>>8
+	return (word&0x00ff)<<8 | (word&0xff00)>>8
 }
 
 func getBit(val uint32, idx uint) bool {
@@ -60,7 +55,7 @@ func setBit(val uint32, idx uint, x bool) uint32 {
 func getBits(val uint32, start, end uint) uint32 {
 	var mask uint32
 	for i := uint(0); i <= end-start; i++ {
-		mask = mask + (1 << i)
+		mask += (1 << i)
 	}
 	return val >> start & mask
 }

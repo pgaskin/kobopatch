@@ -306,7 +306,19 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 
 // ReplaceBLX replaces a BLX instruction at PC (offset). Find and Replace are the target offsets.
 func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
-	return p.replaceValue(offset, blx(uint32(offset), find), blx(uint32(offset), replace), true)
+	if int32(len(p.buf)) < offset {
+		return errors.New("offset past end of buf")
+	}
+	fi, ri := blx(uint32(offset), find), blx(uint32(offset), replace)
+	f, r := mustBytes(toBEBin(fi)), mustBytes(toBEBin(ri))
+	if len(f) != len(r) {
+		return errors.New("internal error: wrong blx length")
+	}
+	if !bytes.HasPrefix(p.buf[offset:], f) {
+		return errors.New("could not find bytes")
+	}
+	copy(p.buf[offset:], r)
+	return nil
 }
 
 // replaceValue encodes find and replace as little-endian binary and replaces the first
@@ -362,6 +374,19 @@ func toLEBin(v interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, v)
 	return buf.Bytes(), err
+}
+
+func toBEBin(v interface{}) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.BigEndian, v)
+	return buf.Bytes(), err
+}
+
+func mustBytes(b []byte, err error) []byte {
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 func wrapErrIfNotNil(txt string, err error) error {

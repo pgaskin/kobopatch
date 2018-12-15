@@ -321,6 +321,25 @@ func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
 	return nil
 }
 
+// ReplaceBytesNOP replaces an instruction with 0046 (MOV r0, r0) as many times as needed.
+func (p *Patcher) ReplaceBytesNOP(offset int32, find []byte) error {
+	if int32(len(p.buf)) < offset {
+		return errors.New("offset past end of buf")
+	}
+	if len(find)%2 != 0 {
+		return errors.New("find not a multiple of 2")
+	}
+	r := make([]byte, len(find))
+	for i := 0; i < len(r); i += 2 {
+		r[i], r[i+1] = 0x00, 0x46
+	}
+	if !bytes.HasPrefix(p.buf[offset:], find) {
+		return errors.New("could not find bytes")
+	}
+	copy(p.buf[offset:], r)
+	return nil
+}
+
 // replaceValue encodes find and replace as little-endian binary and replaces the first
 // occurrence starting at cur. The lengths of the encoded find and replace must be the
 // same, or an error will be returned.

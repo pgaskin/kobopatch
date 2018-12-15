@@ -52,6 +52,11 @@ type instruction struct {
 		Find     []byte  `yaml:"Find,omitempty"`
 		Replace  []byte  `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceBytes,omitempty"`
+	ReplaceBytesNOP *struct {
+		Offset int32   `yaml:"Offset,omitempty"`
+		FindH  *string `yaml:"FindH,omitempty"`
+		Find   []byte  `yaml:"Find,omitempty"`
+	} `yaml:"ReplaceBytesNOP,omitempty"`
 	ReplaceZlib *struct {
 		Offset  int32  `yaml:"Offset,omitempty"`
 		Find    string `yaml:"Find,omitempty"`
@@ -82,6 +87,21 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 	patchfile.Log("parsing patch file: expanding shorthand hex values\n")
 	for n := range *ps {
 		for i := range (*ps)[n] {
+			if (*ps)[n][i].ReplaceBytesNOP != nil {
+				if ((*ps)[n][i].ReplaceBytesNOP).FindH != nil {
+					hex := *((*ps)[n][i].ReplaceBytesNOP).FindH
+					_, err := fmt.Sscanf(
+						strings.Replace(hex, " ", "", -1),
+						"%x\n",
+						&((*ps)[n][i].ReplaceBytesNOP).Find,
+					)
+					if err != nil {
+						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
+						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
+					}
+					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytesNOP).Find)
+				}
+			}
 			if (*ps)[n][i].ReplaceBytes != nil {
 				if ((*ps)[n][i].ReplaceBytes).FindH != nil {
 					hex := *((*ps)[n][i].ReplaceBytes).FindH
@@ -159,6 +179,13 @@ func (ps *PatchSet) Validate() error {
 			if i.ReplaceBytes != nil {
 				ic++
 				rbc++
+			}
+			if i.ReplaceBytesNOP != nil {
+				ic++
+				rbc++
+				if len(i.ReplaceBytesNOP.Find)%2 != 0 {
+					return errors.Errorf("i%d: find must be a multiple of 2 to be replaced with 00 46 (MOV r0, r0)", instn+1)
+				}
 			}
 			if i.ReplaceFloat != nil {
 				ic++
@@ -315,6 +342,10 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				r := *i.ReplaceBytes
 				patchfile.Log("  ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
+			case i.ReplaceBytesNOP != nil:
+				r := *i.ReplaceBytesNOP
+				patchfile.Log("  ReplaceBytesNOP(%#v, %#v)\n", r.Offset, r.Find)
+				err = pt.ReplaceBytesNOP(r.Offset, r.Find)
 			case i.ReplaceFloat != nil:
 				r := *i.ReplaceFloat
 				patchfile.Log("  ReplaceFloat(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)

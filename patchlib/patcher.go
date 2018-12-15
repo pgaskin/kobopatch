@@ -306,18 +306,18 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 
 // ReplaceBLX replaces a BLX instruction at PC (offset). Find and Replace are the target offsets.
 func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
-	if int32(len(p.buf)) < offset {
+	if int32(len(p.buf)) < p.cur+offset {
 		return errors.New("offset past end of buf")
 	}
-	fi, ri := blx(uint32(offset), find), blx(uint32(offset), replace)
+	fi, ri := blx(uint32(p.cur+offset), find), blx(uint32(p.cur+offset), replace)
 	f, r := mustBytes(toBEBin(fi)), mustBytes(toBEBin(ri))
 	if len(f) != len(r) {
 		return errors.New("internal error: wrong blx length")
 	}
-	if !bytes.HasPrefix(p.buf[offset:], f) {
+	if !bytes.HasPrefix(p.buf[p.cur+offset:], f) {
 		return errors.New("could not find bytes")
 	}
-	copy(p.buf[offset:], r)
+	copy(p.buf[p.cur+offset:], r)
 	return nil
 }
 

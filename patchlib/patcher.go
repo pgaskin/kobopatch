@@ -309,7 +309,7 @@ func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
 	if int32(len(p.buf)) < p.cur+offset {
 		return errors.New("offset past end of buf")
 	}
-	fi, ri := blx(uint32(p.cur+offset), find), blx(uint32(p.cur+offset), replace)
+	fi, ri := BLX(uint32(p.cur+offset), find), BLX(uint32(p.cur+offset), replace)
 	f, r := mustBytes(toBEBin(fi)), mustBytes(toBEBin(ri))
 	if len(f) != len(r) {
 		return errors.New("internal error: wrong blx length")
@@ -338,6 +338,11 @@ func (p *Patcher) ReplaceBytesNOP(offset int32, find []byte) error {
 	}
 	copy(p.buf[offset:], r)
 	return nil
+}
+
+// GetCur gets the current base address.
+func (p *Patcher) GetCur() int32 {
+	return p.cur
 }
 
 // replaceValue encodes find and replace as little-endian binary and replaces the first

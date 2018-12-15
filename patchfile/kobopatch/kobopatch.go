@@ -49,13 +49,15 @@ type instruction struct {
 		Offset   int32   `yaml:"Offset,omitempty"`
 		FindH    *string `yaml:"FindH,omitempty"`
 		ReplaceH *string `yaml:"ReplaceH,omitempty"`
+		FindBLX  *uint32 `yaml:"FindBLX,omitempty"`
 		Find     []byte  `yaml:"Find,omitempty"`
 		Replace  []byte  `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceBytes,omitempty"`
 	ReplaceBytesNOP *struct {
-		Offset int32   `yaml:"Offset,omitempty"`
-		FindH  *string `yaml:"FindH,omitempty"`
-		Find   []byte  `yaml:"Find,omitempty"`
+		Offset  int32   `yaml:"Offset,omitempty"`
+		FindH   *string `yaml:"FindH,omitempty"`
+		FindBLX *uint32 `yaml:"FindBLX,omitempty"`
+		Find    []byte  `yaml:"Find,omitempty"`
 	} `yaml:"ReplaceBytesNOP,omitempty"`
 	ReplaceZlib *struct {
 		Offset  int32  `yaml:"Offset,omitempty"`
@@ -340,10 +342,18 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				err = pt.FindBaseAddressString(*i.FindBaseAddressString)
 			case i.ReplaceBytes != nil:
 				r := *i.ReplaceBytes
+				if r.FindBLX != nil {
+					r.Find = patchlib.BLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
+					patchfile.Log("  ReplaceBytes.FindBLX -> Set ReplaceBytes.Find to BLX(0x%X, 0x%X) -> %X", pt.GetCur()+r.Offset, *r.FindBLX, r.Find)
+				}
 				patchfile.Log("  ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
 			case i.ReplaceBytesNOP != nil:
 				r := *i.ReplaceBytesNOP
+				if r.FindBLX != nil {
+					r.Find = patchlib.BLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
+					patchfile.Log("  ReplaceBytesNOP.FindBLX -> Set ReplaceBytesNOP.Find to BLX(0x%X, 0x%X) -> %X", pt.GetCur()+r.Offset, *r.FindBLX, r.Find)
+				}
 				patchfile.Log("  ReplaceBytesNOP(%#v, %#v)\n", r.Offset, r.Find)
 				err = pt.ReplaceBytesNOP(r.Offset, r.Find)
 			case i.ReplaceFloat != nil:

@@ -33,6 +33,12 @@ func blx(pc, target uint32) uint32 {
 	return uint32(top)<<16 | uint32(bot)
 }
 
+// BLX assembles a BLX instruction and returns a byte slice which
+// can be patched directly into a binary.
+func BLX(pc, target uint32) []byte {
+	return mustBytes(toBEBin(blx(pc, target)))
+}
+
 func swapBytes(word uint16) uint16 {
 	a, b := word&0x00ff, word&0xff00
 	return a<<8 | b>>8

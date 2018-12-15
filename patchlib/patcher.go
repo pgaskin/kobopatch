@@ -304,6 +304,11 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 	return zlibs, nil
 }
 
+// ReplaceBLX replaces a BLX instruction at PC (offset). Find and Replace are the target offsets.
+func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
+	return p.replaceValue(offset, blx(uint32(offset), find), blx(uint32(offset), replace), true)
+}
+
 // replaceValue encodes find and replace as little-endian binary and replaces the first
 // occurrence starting at cur. The lengths of the encoded find and replace must be the
 // same, or an error will be returned.

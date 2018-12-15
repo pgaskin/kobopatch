@@ -19,6 +19,7 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - [X] Zlib support
 - [X] CSS extraction tool (./cssextract)
 - [X] Support for adding additional files
+- [X] ReplaceBLX support
 
 **Improvements/Goals:**
 - More readable code
@@ -34,5 +35,6 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 - No need for temp files
 - Save and restore lists of enabled patches
 - Translation file support
+- Replacement of assembly instructions
 - more
 - Zlib support

@@ -64,6 +64,11 @@ type instruction struct {
 			Replace string `yaml:"Replace,omitempty"`
 		} `yaml:"Replacements,omitempty"`
 	} `yaml:"ReplaceZlibGroup,omitempty"`
+	ReplaceBLX *struct {
+		Offset  int32  `yaml:"Offset,omitempty"`
+		Find    uint32 `yaml:"Find,omitempty"`
+		Replace uint32 `yaml:"Replace,omitempty"`
+	} `yaml:"ReplaceBLX,omitempty"`
 }
 
 // Parse parses a PatchSet from a buf.
@@ -212,6 +217,10 @@ func (ps *PatchSet) Validate() error {
 					}
 				}
 			}
+			if i.ReplaceBLX != nil {
+				ic++
+				roc++
+			}
 			if ic < 1 {
 				return errors.Errorf("i%d: internal error while validating `%s` (you should report this as a bug)", instn+1, n)
 			}
@@ -351,6 +360,10 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 					rs = append(rs, patchlib.Replacement{Find: rr.Find, Replace: rr.Replace})
 				}
 				err = pt.ReplaceZlibGroup(r.Offset, rs)
+			case i.ReplaceBLX != nil:
+				r := *i.ReplaceBLX
+				patchfile.Log("  ReplaceBLX(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				err = pt.ReplaceBLX(r.Offset, r.Find, r.Replace)
 			default:
 				patchfile.Log("  invalid instruction: %#v\n", i)
 				err = errors.Errorf("invalid instruction: %#v", i)

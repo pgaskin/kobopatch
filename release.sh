@@ -41,7 +41,7 @@ echo "Installing toolchains"
 wget "https://github.com/bblfsh/client-scala/releases/download/v1.5.2/osxcross_3034f7149716d815bc473d0a7b35d17e4cf175aa.tar.gz" -O- | tar -xzf -
 export "PATH=$PWD/osxcross/bin:$PATH"
 sudo dpkg --add-architecture i386
-sudo apt update
+sudo apt update || echo "Warning: apt update failed"
 sudo apt install -y aptitude
 sudo aptitude install -y gcc gcc-multilib gcc-mingw-w64-i686 zlib1g-dev:i386 gcc-arm-linux-gnueabihf clang libc6-dev-i386
 wget http://mirrors.kernel.org/ubuntu/pool/universe/libz/libz-mingw-w64/libz-mingw-w64_1.2.8+dfsg-2_all.deb

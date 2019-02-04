@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
+	"debug/elf"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/DataDog/czlib"
+	"github.com/ianlancetaylor/demangle"
 	"github.com/pkg/errors"
 )
 
@@ -64,6 +66,29 @@ func (p *Patcher) FindBaseAddress(find []byte) error {
 // FindBaseAddressString moves cur to the offset of a string.
 func (p *Patcher) FindBaseAddressString(find string) error {
 	return p.FindBaseAddress([]byte(find))
+}
+
+// FindBaseAddressSymbol moves cur to the offset of a symbol by it's demangled c++ name.
+func (p *Patcher) FindBaseAddressSymbol(find string) error {
+	e, err := elf.NewFile(bytes.NewReader(p.buf))
+	if err != nil {
+		return wrapErrIfNotNil("FindBaseAddressSymbol: could not open file as elf binary", err)
+	}
+	syms, err := e.DynamicSymbols()
+	if err != nil {
+		return wrapErrIfNotNil("FindBaseAddressSymbol: could not read dynsyms", err)
+	}
+	for _, sym := range syms {
+		name, err := demangle.ToString(sym.Name)
+		if err != nil {
+			name = sym.Name
+		}
+		if find != "" && find == name {
+			p.cur = int32(sym.Value)
+			return nil
+		}
+	}
+	return errors.New("FindBaseAddressSymbol: could not find symbol")
 }
 
 // ReplaceBytes replaces the first occurrence of a sequence of bytes with another of the same length.

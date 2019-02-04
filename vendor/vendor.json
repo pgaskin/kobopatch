@@ -15,6 +15,12 @@
 			"revisionTime": "2018-02-21T22:46:20Z"
 		},
 		{
+			"checksumSHA1": "3C1lkLOZmDodsURqh9Y7HFcptlY=",
+			"path": "github.com/ianlancetaylor/demangle",
+			"revision": "5e5cf60278f657d30daa329dd0e7e893b6b8f027",
+			"revisionTime": "2018-11-02T03:27:28Z"
+		},
+		{
 			"checksumSHA1": "ljd3FhYRJ91cLZz3wsH9BQQ2JbA=",
 			"path": "github.com/pkg/errors",
 			"revision": "816c9085562cd7ee03e7f8188a1cfd942858cded",

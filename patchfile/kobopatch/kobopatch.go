@@ -22,6 +22,7 @@ type instruction struct {
 	BaseAddress           *int32  `yaml:"BaseAddress,omitempty"`
 	FindBaseAddressHex    *string `yaml:"FindBaseAddressHex,omitempty"`
 	FindBaseAddressString *string `yaml:"FindBaseAddressString,omitempty"`
+	FindBaseAddressSymbol *string `yaml:"FindBaseAddressSymbol,omitempty"`
 	FindZlib              *string `yaml:"FindZlib,omitempty"`
 	FindZlibHash          *string `yaml:"FindZlibHash,omitempty"`
 	FindReplaceString     *struct {
@@ -53,6 +54,15 @@ type instruction struct {
 		Find     []byte  `yaml:"Find,omitempty"`
 		Replace  []byte  `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceBytes,omitempty"`
+	ReplaceBytesAtSymbol *struct {
+		Symbol   string  `yaml:"Symbol,omitempty"`
+		Offset   int32   `yaml:"Offset,omitempty"`
+		FindH    *string `yaml:"FindH,omitempty"`
+		ReplaceH *string `yaml:"ReplaceH,omitempty"`
+		FindBLX  *uint32 `yaml:"FindBLX,omitempty"`
+		Find     []byte  `yaml:"Find,omitempty"`
+		Replace  []byte  `yaml:"Replace,omitempty"`
+	} `yaml:"ReplaceBytesAtSymbol,omitempty"`
 	ReplaceBytesNOP *struct {
 		Offset  int32   `yaml:"Offset,omitempty"`
 		FindH   *string `yaml:"FindH,omitempty"`
@@ -132,6 +142,34 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytes).Replace)
 				}
 			}
+			if (*ps)[n][i].ReplaceBytesAtSymbol != nil {
+				if ((*ps)[n][i].ReplaceBytesAtSymbol).FindH != nil {
+					hex := *((*ps)[n][i].ReplaceBytesAtSymbol).FindH
+					_, err := fmt.Sscanf(
+						strings.Replace(hex, " ", "", -1),
+						"%x\n",
+						&((*ps)[n][i].ReplaceBytesAtSymbol).Find,
+					)
+					if err != nil {
+						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
+						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
+					}
+					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytesAtSymbol).Find)
+				}
+				if ((*ps)[n][i].ReplaceBytesAtSymbol).ReplaceH != nil {
+					hex := *((*ps)[n][i].ReplaceBytesAtSymbol).ReplaceH
+					_, err := fmt.Sscanf(
+						strings.Replace(hex, " ", "", -1),
+						"%x\n",
+						&((*ps)[n][i].ReplaceBytesAtSymbol).Replace,
+					)
+					if err != nil {
+						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
+						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
+					}
+					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytesAtSymbol).Replace)
+				}
+			}
 		}
 	}
 
@@ -175,10 +213,17 @@ func (ps *PatchSet) Validate() error {
 				ic++
 				fbsc++
 			}
+			if i.FindBaseAddressSymbol != nil {
+				ic++
+			}
 			if i.FindBaseAddressHex != nil {
 				ic++
 			}
 			if i.ReplaceBytes != nil {
+				ic++
+				rbc++
+			}
+			if i.ReplaceBytesAtSymbol != nil {
 				ic++
 				rbc++
 			}
@@ -340,6 +385,9 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 			case i.FindBaseAddressString != nil:
 				patchfile.Log("  FindBaseAddressString(%#v) | hex:%x\n", *i.FindBaseAddressString, []byte(*i.FindBaseAddressString))
 				err = pt.FindBaseAddressString(*i.FindBaseAddressString)
+			case i.FindBaseAddressSymbol != nil:
+				patchfile.Log("  FindBaseAddressSymbol(%#v) | hex:%x\n", *i.FindBaseAddressSymbol, []byte(*i.FindBaseAddressSymbol))
+				err = pt.FindBaseAddressSymbol(*i.FindBaseAddressSymbol)
 			case i.ReplaceBytes != nil:
 				r := *i.ReplaceBytes
 				if r.FindBLX != nil {
@@ -348,6 +396,27 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				}
 				patchfile.Log("  ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
 				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
+			case i.ReplaceBytesAtSymbol != nil:
+				r := *i.ReplaceBytesAtSymbol
+				patchfile.Log("  ReplaceBytesAtSymbol(%#v, %#v, %#v, %#v)\n", r.Symbol, r.Offset, r.Find, r.Replace)
+				patchfile.Log("    FindBaseAddressSymbol(%#v) -> ", r.Symbol)
+				err = pt.FindBaseAddressSymbol(r.Symbol)
+				if err != nil {
+					err = errors.Wrap(err, "ReplaceBytesAtSymbol")
+					break
+				}
+				patchfile.Log("0x%06x\n", pt.GetCur())
+				if r.FindBLX != nil {
+					r.Find = patchlib.BLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
+					patchfile.Log("  ReplaceBytesAtSymbol.FindBLX -> Set ReplaceBytesAtSymbol.Find to BLX(0x%X, 0x%X) -> %X", pt.GetCur()+r.Offset, *r.FindBLX, r.Find)
+				}
+				patchfile.Log("cur=0x%06x off=0x%x bytes=%x find=%x replace=%x\n", pt.GetCur(), r.Offset, pt.GetBytes()[pt.GetCur()+r.Offset:pt.GetCur()+r.Offset+4], r.Find, r.Replace)
+				patchfile.Log("    ReplaceBytes(%#v, %#v, %#v)\n", r.Offset, r.Find, r.Replace)
+				err = pt.ReplaceBytes(r.Offset, r.Find, r.Replace)
+				if err != nil {
+					err = errors.Wrap(err, "ReplaceBytesAtSymbol")
+					break
+				}
 			case i.ReplaceBytesNOP != nil:
 				r := *i.ReplaceBytesNOP
 				if r.FindBLX != nil {

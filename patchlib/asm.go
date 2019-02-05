@@ -1,6 +1,17 @@
 package patchlib
 
-// go port of https://gist.github.com/jeremy-allen-cs/c93bd333b5b585c2b840
+// MovR0Bool assembles a MOV.W instruction to set a bool to r0. This
+// is useful to replace the return value of BLX function calls. The
+// result has a lemgth of 4.
+func MovR0Bool(b bool) []byte {
+	v := uint8(0)
+	if b {
+		v = 1
+	}
+	return []byte{0x4F, 0xF0, v, 0x00}
+}
+
+// below is go port of https://gist.github.com/jeremy-allen-cs/c93bd333b5b585c2b840
 
 func blx(pc, target uint32) uint32 {
 	pc += 4          // arm pipeline

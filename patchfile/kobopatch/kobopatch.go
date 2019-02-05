@@ -47,21 +47,23 @@ type instruction struct {
 		Replace float64 `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceFloat,omitempty"`
 	ReplaceBytes *struct {
-		Offset   int32   `yaml:"Offset,omitempty"`
-		FindH    *string `yaml:"FindH,omitempty"`
-		ReplaceH *string `yaml:"ReplaceH,omitempty"`
-		FindBLX  *uint32 `yaml:"FindBLX,omitempty"`
-		Find     []byte  `yaml:"Find,omitempty"`
-		Replace  []byte  `yaml:"Replace,omitempty"`
+		Offset         int32   `yaml:"Offset,omitempty"`
+		FindH          *string `yaml:"FindH,omitempty"`
+		ReplaceH       *string `yaml:"ReplaceH,omitempty"`
+		FindBLX        *uint32 `yaml:"FindBLX,omitempty"`
+		ReplaceRetBool *bool   `yaml:"ReplaceRetBool,omitempty"`
+		Find           []byte  `yaml:"Find,omitempty"`
+		Replace        []byte  `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceBytes,omitempty"`
 	ReplaceBytesAtSymbol *struct {
-		Symbol   string  `yaml:"Symbol,omitempty"`
-		Offset   int32   `yaml:"Offset,omitempty"`
-		FindH    *string `yaml:"FindH,omitempty"`
-		ReplaceH *string `yaml:"ReplaceH,omitempty"`
-		FindBLX  *uint32 `yaml:"FindBLX,omitempty"`
-		Find     []byte  `yaml:"Find,omitempty"`
-		Replace  []byte  `yaml:"Replace,omitempty"`
+		Symbol         string  `yaml:"Symbol,omitempty"`
+		Offset         int32   `yaml:"Offset,omitempty"`
+		FindH          *string `yaml:"FindH,omitempty"`
+		ReplaceH       *string `yaml:"ReplaceH,omitempty"`
+		FindBLX        *uint32 `yaml:"FindBLX,omitempty"`
+		ReplaceRetBool *bool   `yaml:"ReplaceRetBool,omitempty"`
+		Find           []byte  `yaml:"Find,omitempty"`
+		Replace        []byte  `yaml:"Replace,omitempty"`
 	} `yaml:"ReplaceBytesAtSymbol,omitempty"`
 	ReplaceBytesNOP *struct {
 		Offset  int32   `yaml:"Offset,omitempty"`
@@ -133,6 +135,22 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 		}
 	}
 
+	patchfile.Log("parsing patch file: expanding ReplaceRetBool values\n")
+	for n := range *ps {
+		for i := range (*ps)[n] {
+			if (*ps)[n][i].ReplaceBytes != nil {
+				if (*ps)[n][i].ReplaceBytes.ReplaceRetBool != nil {
+					(*ps)[n][i].ReplaceBytes.Replace = patchlib.MovR0Bool(*(*ps)[n][i].ReplaceBytes.ReplaceRetBool)
+				}
+			}
+			if (*ps)[n][i].ReplaceBytesAtSymbol != nil {
+				if (*ps)[n][i].ReplaceBytesAtSymbol.ReplaceRetBool != nil {
+					(*ps)[n][i].ReplaceBytesAtSymbol.Replace = patchlib.MovR0Bool(*(*ps)[n][i].ReplaceBytesAtSymbol.ReplaceRetBool)
+				}
+			}
+		}
+	}
+
 	return ps, nil
 }
 
@@ -182,10 +200,22 @@ func (ps *PatchSet) Validate() error {
 			if i.ReplaceBytes != nil {
 				ic++
 				rbc++
+				if i.ReplaceBytes.FindH != nil && i.ReplaceBytes.FindBLX != nil {
+					return errors.Errorf("i%d: only one of FindH and FindBLX can be specified in ReplaceBytes", instn+1)
+				}
+				if i.ReplaceBytes.ReplaceH != nil && i.ReplaceBytes.ReplaceRetBool != nil {
+					return errors.Errorf("i%d: only one of ReplaceH and ReplaceRetBool can be specified in ReplaceBytes", instn+1)
+				}
 			}
 			if i.ReplaceBytesAtSymbol != nil {
 				ic++
 				rbc++
+				if i.ReplaceBytesAtSymbol.FindH != nil && i.ReplaceBytesAtSymbol.FindBLX != nil {
+					return errors.Errorf("i%d: only one of FindH and FindBLX can be specified in ReplaceBytesAtSymbol", instn+1)
+				}
+				if i.ReplaceBytesAtSymbol.ReplaceH != nil && i.ReplaceBytesAtSymbol.ReplaceRetBool != nil {
+					return errors.Errorf("i%d: only one of ReplaceH and ReplaceRetBool can be specified in ReplaceBytesAtSymbol", instn+1)
+				}
 			}
 			if i.ReplaceBytesNOP != nil {
 				ic++

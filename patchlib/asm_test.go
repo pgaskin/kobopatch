@@ -1,9 +1,19 @@
 package patchlib
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 )
+
+func TestMovR0Bool(t *testing.T) {
+	if !bytes.Equal(MovR0Bool(true), []byte{0x4F, 0xF0, 0x01, 0x00}) {
+		t.Errorf("expected true to return 4F F0 01 00 (MOV.W r0, #1)")
+	}
+	if !bytes.Equal(MovR0Bool(false), []byte{0x4F, 0xF0, 0x00, 0x00}) {
+		t.Errorf("expected true to return 4F F0 00 00 (MOV.W r0, #1)")
+	}
+}
 
 func TestBLX(t *testing.T) {
 	for _, tc := range []struct{ pc, target, inst uint32 }{

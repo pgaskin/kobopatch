@@ -100,74 +100,34 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 	for n := range *ps {
 		for i := range (*ps)[n] {
 			if (*ps)[n][i].ReplaceBytesNOP != nil {
-				if ((*ps)[n][i].ReplaceBytesNOP).FindH != nil {
-					hex := *((*ps)[n][i].ReplaceBytesNOP).FindH
-					_, err := fmt.Sscanf(
-						strings.Replace(hex, " ", "", -1),
-						"%x\n",
-						&((*ps)[n][i].ReplaceBytesNOP).Find,
-					)
-					if err != nil {
-						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
-						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
-					}
-					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytesNOP).Find)
+				if replaced, err := parseHex(((*ps)[n][i].ReplaceBytesNOP).FindH, &((*ps)[n][i].ReplaceBytesNOP).Find); err != nil {
+					return nil, errors.Wrap(err, "error parsing patch file")
+				} else if replaced {
+					patchfile.Log("  decoded hex `%s` to `%v`\n", *((*ps)[n][i].ReplaceBytesNOP).FindH, ((*ps)[n][i].ReplaceBytesNOP).Find)
 				}
 			}
 			if (*ps)[n][i].ReplaceBytes != nil {
-				if ((*ps)[n][i].ReplaceBytes).FindH != nil {
-					hex := *((*ps)[n][i].ReplaceBytes).FindH
-					_, err := fmt.Sscanf(
-						strings.Replace(hex, " ", "", -1),
-						"%x\n",
-						&((*ps)[n][i].ReplaceBytes).Find,
-					)
-					if err != nil {
-						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
-						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
-					}
-					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytes).Find)
+				if replaced, err := parseHex(((*ps)[n][i].ReplaceBytes).FindH, &((*ps)[n][i].ReplaceBytes).Find); err != nil {
+					return nil, errors.Wrap(err, "error parsing patch file")
+				} else if replaced {
+					patchfile.Log("  decoded hex `%s` to `%v`\n", *((*ps)[n][i].ReplaceBytes).FindH, ((*ps)[n][i].ReplaceBytes).Find)
 				}
-				if ((*ps)[n][i].ReplaceBytes).ReplaceH != nil {
-					hex := *((*ps)[n][i].ReplaceBytes).ReplaceH
-					_, err := fmt.Sscanf(
-						strings.Replace(hex, " ", "", -1),
-						"%x\n",
-						&((*ps)[n][i].ReplaceBytes).Replace,
-					)
-					if err != nil {
-						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
-						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
-					}
-					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytes).Replace)
+				if replaced, err := parseHex(((*ps)[n][i].ReplaceBytes).ReplaceH, &((*ps)[n][i].ReplaceBytes).Replace); err != nil {
+					return nil, errors.Wrap(err, "error parsing patch file")
+				} else if replaced {
+					patchfile.Log("  decoded hex `%s` to `%v`\n", *((*ps)[n][i].ReplaceBytes).ReplaceH, ((*ps)[n][i].ReplaceBytes).Replace)
 				}
 			}
 			if (*ps)[n][i].ReplaceBytesAtSymbol != nil {
-				if ((*ps)[n][i].ReplaceBytesAtSymbol).FindH != nil {
-					hex := *((*ps)[n][i].ReplaceBytesAtSymbol).FindH
-					_, err := fmt.Sscanf(
-						strings.Replace(hex, " ", "", -1),
-						"%x\n",
-						&((*ps)[n][i].ReplaceBytesAtSymbol).Find,
-					)
-					if err != nil {
-						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
-						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
-					}
-					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytesAtSymbol).Find)
+				if replaced, err := parseHex(((*ps)[n][i].ReplaceBytesAtSymbol).FindH, &((*ps)[n][i].ReplaceBytesAtSymbol).Find); err != nil {
+					return nil, errors.Wrap(err, "error parsing patch file")
+				} else if replaced {
+					patchfile.Log("  decoded hex `%s` to `%v`\n", *((*ps)[n][i].ReplaceBytesAtSymbol).FindH, ((*ps)[n][i].ReplaceBytesAtSymbol).Find)
 				}
-				if ((*ps)[n][i].ReplaceBytesAtSymbol).ReplaceH != nil {
-					hex := *((*ps)[n][i].ReplaceBytesAtSymbol).ReplaceH
-					_, err := fmt.Sscanf(
-						strings.Replace(hex, " ", "", -1),
-						"%x\n",
-						&((*ps)[n][i].ReplaceBytesAtSymbol).Replace,
-					)
-					if err != nil {
-						patchfile.Log("  error decoding hex `%s`: %v\n", hex, err)
-						return nil, errors.Errorf("error parsing patch file: error expanding shorthand hex `%s`", hex)
-					}
-					patchfile.Log("  decoded hex `%s` to `%v`\n", hex, ((*ps)[n][i].ReplaceBytesAtSymbol).Replace)
+				if replaced, err := parseHex(((*ps)[n][i].ReplaceBytesAtSymbol).ReplaceH, &((*ps)[n][i].ReplaceBytesAtSymbol).Replace); err != nil {
+					return nil, errors.Wrap(err, "error parsing patch file")
+				} else if replaced {
+					patchfile.Log("  decoded hex `%s` to `%v`\n", *((*ps)[n][i].ReplaceBytesAtSymbol).ReplaceH, ((*ps)[n][i].ReplaceBytesAtSymbol).Replace)
 				}
 			}
 		}
@@ -511,4 +471,15 @@ func (ps *PatchSet) SetEnabled(patch string, enabled bool) error {
 
 func init() {
 	patchfile.RegisterFormat("kobopatch", Parse)
+}
+
+func parseHex(in *string, out *[]byte) (bool, error) {
+	if in != nil {
+		_, err := fmt.Sscanf(strings.Replace(*in, " ", "", -1), "%x\n", out)
+		if err != nil {
+			return true, errors.Errorf("error expanding shorthand hex `%s`: %v", *in, err)
+		}
+		return true, nil
+	}
+	return false, nil
 }

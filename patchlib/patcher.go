@@ -135,12 +135,12 @@ func (p *Patcher) FindZlib(find string) error {
 			continue
 		}
 		// Handle minification from below
-		zi.CSS = strings.Replace(zi.CSS, "\n    ", "\n", -1)
-		zi.CSS = strings.Replace(zi.CSS, "\n  ", "\n", -1)
-		zi.CSS = strings.Replace(zi.CSS, "\n ", "\n", -1)
-		findm := strings.Replace(find, "\n  ", "\n", -1)
-		findm = strings.Replace(find, "\n ", "\n", -1)
-		findm = strings.Replace(findm, "\n    ", "\n", -1)
+		zi.CSS = strings.ReplaceAll(zi.CSS, "\n    ", "\n")
+		zi.CSS = strings.ReplaceAll(zi.CSS, "\n  ", "\n")
+		zi.CSS = strings.ReplaceAll(zi.CSS, "\n ", "\n")
+		findm := strings.ReplaceAll(find, "\n  ", "\n")
+		findm = strings.ReplaceAll(find, "\n ", "\n")
+		findm = strings.ReplaceAll(findm, "\n    ", "\n")
 		if strings.Contains(zi.CSS, findm) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(findm)) {
 			if i != 0 {
 				return errors.New("FindZlib: substring to find is not unique")
@@ -148,10 +148,10 @@ func (p *Patcher) FindZlib(find string) error {
 			i = zi.Offset
 			continue
 		}
-		zi.CSS = strings.Replace(zi.CSS, ": ", ":", -1)
-		zi.CSS = strings.Replace(zi.CSS, " {", "{", -1)
-		findm = strings.Replace(findm, ": ", ":", -1)
-		findm = strings.Replace(findm, " {", "{", -1)
+		zi.CSS = strings.ReplaceAll(zi.CSS, ": ", ":")
+		zi.CSS = strings.ReplaceAll(zi.CSS, " {", "{")
+		findm = strings.ReplaceAll(findm, ": ", ":")
+		findm = strings.ReplaceAll(findm, " {", "{")
 		if strings.Contains(zi.CSS, findm) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(findm)) {
 			if i != 0 {
 				return errors.New("FindZlib: substring to find is not unique")
@@ -159,11 +159,11 @@ func (p *Patcher) FindZlib(find string) error {
 			i = zi.Offset
 			continue
 		}
-		zi.CSS = strings.Replace(zi.CSS, "\n", "", -1)
-		zi.CSS = strings.Replace(zi.CSS, "{ ", "", -1)
-		zi.CSS = strings.Replace(zi.CSS, "; ", "", -1)
-		findm = strings.Replace(findm, "{ ", "{", -1)
-		findm = strings.Replace(findm, "; ", ";", -1)
+		zi.CSS = strings.ReplaceAll(zi.CSS, "\n", "")
+		zi.CSS = strings.ReplaceAll(zi.CSS, "{ ", "")
+		zi.CSS = strings.ReplaceAll(zi.CSS, "; ", "")
+		findm = strings.ReplaceAll(findm, "{ ", "{")
+		findm = strings.ReplaceAll(findm, "; ", ";")
 		if strings.Contains(zi.CSS, findm) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(findm)) {
 			if i != 0 {
 				return errors.New("FindZlib: substring to find is not unique")
@@ -236,18 +236,18 @@ func (p *Patcher) ReplaceZlibGroup(offset int32, repl []Replacement) error {
 	for _, r := range repl {
 		find, replace := r.Find, r.Replace
 		if !bytes.Contains(dbuf, []byte(find)) {
-			find = strings.Replace(find, "\n    ", "\n", -1)
-			find = strings.Replace(find, "\n  ", "\n", -1)
-			find = strings.Replace(find, "\n ", "\n", -1)
+			find = strings.ReplaceAll(find, "\n    ", "\n")
+			find = strings.ReplaceAll(find, "\n  ", "\n")
+			find = strings.ReplaceAll(find, "\n ", "\n")
 			if !bytes.Contains(dbuf, []byte(find)) {
-				find = strings.Replace(find, ": ", ":", -1)
-				find = strings.Replace(find, " {", "{", -1)
+				find = strings.ReplaceAll(find, ": ", ":")
+				find = strings.ReplaceAll(find, " {", "{")
 				if !bytes.Contains(dbuf, []byte(find)) {
-					find = strings.Replace(find, "\n", "", -1)
-					find = strings.Replace(find, "; ", ";", -1)
-					find = strings.Replace(find, "{ ", "{", -1)
+					find = strings.ReplaceAll(find, "\n", "")
+					find = strings.ReplaceAll(find, "; ", ";")
+					find = strings.ReplaceAll(find, "{ ", "{")
 					if !bytes.Contains(dbuf, []byte(find)) {
-						return errors.Errorf("ReplaceZlib: find string not found in stream (%s)", strings.Replace(find, "\n", "\\n", -1))
+						return errors.Errorf("ReplaceZlib: find string not found in stream (%s)", strings.ReplaceAll(find, "\n", "\\n"))
 					}
 				}
 			}
@@ -471,9 +471,9 @@ func decompress(src []byte) ([]byte, error) {
 }
 
 func stripWhitespace(src string) string {
-	src = strings.Replace(src, " ", "", -1)
-	src = strings.Replace(src, "\t", "", -1)
-	src = strings.Replace(src, "\n", "", -1)
-	src = strings.Replace(src, "\r", "", -1)
+	src = strings.ReplaceAll(src, " ", "")
+	src = strings.ReplaceAll(src, "\t", "")
+	src = strings.ReplaceAll(src, "\n", "")
+	src = strings.ReplaceAll(src, "\r", "")
 	return src
 }

@@ -65,7 +65,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 	var inPatch bool
 	curPatch := patch{}
 	eqRegexp := regexp.MustCompile(" +?= +?")
-	for i, l := range strings.Split(strings.Replace(string(buf), "\r\n", "\n", -1), "\n") {
+	for i, l := range strings.Split(strings.ReplaceAll(string(buf), "\r\n", "\n"), "\n") {
 		l = strings.TrimSpace(l)
 		switch {
 		case strings.HasPrefix(l, "#"), l == "":
@@ -127,7 +127,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 					return nil, errors.Errorf("line %d: unexpected patch_enable value '%s' (should be yes or no)", i+1, spl[1])
 				}
 			case "replace_bytes":
-				args := strings.Replace(spl[1], " ", "", -1)
+				args := strings.ReplaceAll(spl[1], " ", "")
 				var offset int32
 				var find, replace []byte
 				_, err := fmt.Sscanf(args, "%x,%x,%x", &offset, &find, &replace)
@@ -147,7 +147,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				}
 				curPatch = append(curPatch, instruction{BaseAddress: &addr})
 			case "replace_float":
-				args := strings.Replace(spl[1], " ", "", -1)
+				args := strings.ReplaceAll(spl[1], " ", "")
 				var offset int32
 				var find, replace float64
 				_, err := fmt.Sscanf(args, "%x,%f,%f", &offset, &find, &replace)
@@ -160,7 +160,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 					Replace float64
 				}{Offset: offset, Find: find, Replace: replace}})
 			case "replace_int":
-				args := strings.Replace(spl[1], " ", "", -1)
+				args := strings.ReplaceAll(spl[1], " ", "")
 				var offset int32
 				var find, replace uint8
 				_, err := fmt.Sscanf(args, "%x,%d,%d", &offset, &find, &replace)

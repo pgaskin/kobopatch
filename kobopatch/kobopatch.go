@@ -63,7 +63,7 @@ func main() {
 	}
 
 	patchfile.Log = func(format string, a ...interface{}) {
-		k.Debugf("          | %s", strings.Replace(fmt.Sprintf(strings.TrimRight(format, "\n"), a...), "\n", "\n          | ", -1))
+		k.Debugf("          | %s", strings.ReplaceAll(fmt.Sprintf(strings.TrimRight(format, "\n"), a...), "\n", "\n          | "))
 	}
 
 	k.Logf("kobopatch %s\nhttps://github.com/geek1011/kobopatch\n", version)
@@ -793,7 +793,7 @@ func (k *KoboPatch) d(format string, a ...interface{}) {
 }
 
 func (k *KoboPatch) dp(prefix string, format string, a ...interface{}) {
-	k.d("%s%s", prefix, strings.Replace(fmt.Sprintf(format, a...), "\n", "\n"+prefix, -1))
+	k.d("%s%s", prefix, strings.ReplaceAll(fmt.Sprintf(format, a...), "\n", "\n"+prefix))
 }
 
 func wrap(err error, format string, a ...interface{}) error {
@@ -809,8 +809,8 @@ func jm(v interface{}) string {
 
 func getFormat(filename string) string {
 	f := strings.TrimLeft(filepath.Ext(filename), ".")
-	f = strings.Replace(f, "patch", "patch32lsb", -1)
-	f = strings.Replace(f, "yaml", "kobopatch", -1)
+	f = strings.ReplaceAll(f, "patch", "patch32lsb")
+	f = strings.ReplaceAll(f, "yaml", "kobopatch")
 	return f
 }
 

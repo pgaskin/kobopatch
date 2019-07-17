@@ -118,7 +118,7 @@ func (b BaseAddress) ApplyTo(pt *patchlib.Patcher, log func(string, ...interface
 func (b FindBaseAddressHex) ApplyTo(pt *patchlib.Patcher, log func(string, ...interface{})) error {
 	log("FindBaseAddressHex(%#v)", b)
 	var buf []byte
-	_, err := fmt.Sscanf(strings.Replace(string(b), " ", "", -1), "%x\n", &buf)
+	_, err := fmt.Sscanf(strings.ReplaceAll(string(b), " ", ""), "%x\n", &buf)
 	if err != nil {
 		return errors.Wrap(err, "FindBaseAddressHex: error parsing hex")
 	}
@@ -328,6 +328,6 @@ func expandHex(in *string, out *[]byte) (bool, error) {
 	if in == nil {
 		return false, nil
 	}
-	_, err := fmt.Sscanf(strings.Replace(*in, " ", "", -1), "%x\n", out)
+	_, err := fmt.Sscanf(strings.ReplaceAll(*in, " ", ""), "%x\n", out)
 	return true, errors.Wrapf(err, "error expanding shorthand hex `%s`", *in)
 }

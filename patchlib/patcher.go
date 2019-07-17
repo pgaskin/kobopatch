@@ -412,7 +412,6 @@ func (p *Patcher) replaceValue(offset int32, find, replace interface{}, strictOf
 	}
 
 	if strictOffset && !bytes.HasPrefix(p.buf[p.cur+offset:], fbuf) {
-		fmt.Printf("%x -> %x (%x)[%x]{%d} {%v, %v, %v}\n", fbuf, rbuf, p.buf, p.buf[p.cur+offset:], p.cur+offset, find, replace, offset)
 		return errors.New("could not find specified bytes at offset")
 	}
 

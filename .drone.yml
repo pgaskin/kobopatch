@@ -52,3 +52,6 @@ steps:
     note: notes.md
     files: build/*
     draft: true
+  when:
+    ref:
+    - refs/tags/*

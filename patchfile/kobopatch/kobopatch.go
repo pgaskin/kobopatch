@@ -221,7 +221,7 @@ func (ps *PatchSet) Validate() error {
 				}
 				for i, repl := range r.Replacements {
 					if repl.Find == "" || repl.Replace == "" {
-						return errors.Errorf("%s: ReplaceZlibGroup: replacement %d: Find and Replace must be set", i+1)
+						return errors.Errorf("%s: ReplaceZlibGroup: replacement %d: Find and Replace must be set", pfx, i+1)
 					}
 				}
 			}

@@ -21,7 +21,7 @@ type PatchSet struct {
 type parsedPatch struct {
 	Enabled      bool
 	Description  string
-	PatchGroup   *string
+	PatchGroups  []string
 	Instructions []*parsedInstruction
 }
 
@@ -80,11 +80,8 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				}
 				ps.parsed[name].Description = string(sinst.(Description))
 			case PatchGroup:
-				if ps.parsed[name].PatchGroup != nil {
-					return nil, errors.Errorf("patch %#v: line %d: instruction %d: duplicate PatchGroup instruction", name, instNode.Line(node.Line), i+1)
-				}
 				g := string(sinst.(PatchGroup))
-				ps.parsed[name].PatchGroup = &g
+				ps.parsed[name].PatchGroups = append(ps.parsed[name].PatchGroups, g)
 			default:
 				patchfile.Log("      converting to PatchableInstruction\n")
 				if psinst, ok := sinst.(PatchableInstruction); ok {
@@ -168,11 +165,18 @@ func (ps *PatchSet) Validate() error {
 	for _, name := range ps.SortedNames() {
 		patch := ps.parsed[name]
 
-		if patch.PatchGroup != nil && patch.Enabled {
-			if r, ok := usedPatchGroups[*patch.PatchGroup]; ok {
-				return errors.Errorf("patch %#v: more than one patch enabled in PatchGroup %#v (other patch is %#v)", name, *patch.PatchGroup, r)
+		seenPatchGroups := map[string]bool{}
+		for _, g := range patch.PatchGroups {
+			if seenPatchGroups[g] {
+				return errors.Errorf("patch %#v: duplicate PatchGroup instruction for PatchGroup %#v", name, g)
 			}
-			usedPatchGroups[*patch.PatchGroup] = name
+			seenPatchGroups[g] = true
+			if patch.Enabled {
+				if r, ok := usedPatchGroups[g]; ok {
+					return errors.Errorf("patch %#v: more than one patch enabled in PatchGroup %#v (other patch is %#v)", name, g, r)
+				}
+				usedPatchGroups[g] = name
+			}
 		}
 
 		if len(patch.Instructions) == 0 {

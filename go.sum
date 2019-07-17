@@ -2,6 +2,8 @@ github.com/DataDog/czlib v0.0.0-20160811164712-4bc9a24e37f2 h1:/Xf0UwdF1dlv6cNu0
 github.com/DataDog/czlib v0.0.0-20160811164712-4bc9a24e37f2/go.mod h1:xK7es18l1aQtR1g0i6RhEQ78ckvRAWiwlG0vBFud/Jk=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/geek1011/yaml v0.0.0-20190717135119-db0123c0912e h1:pvQRziv7p7KIPtCstDzbEbP+QDqXCLejUPi3ocALKkg=
+github.com/geek1011/yaml v0.0.0-20190717135119-db0123c0912e/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6 h1:UDMh68UUwekSh5iP2OMhRRZJiiBccgV7axzUG8vi56c=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=

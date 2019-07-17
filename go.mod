@@ -11,7 +11,6 @@ require (
 	github.com/spf13/pflag v0.0.0-20181212140101-916c5bf2d89a
 	github.com/stretchr/testify v0.0.0-20180319223459-c679ae2cc0cb
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	gopkg.in/yaml.v2 v2.2.2
 	gopkg.in/yaml.v3 v3.0.0-20190709130402-674ba3eaed22
 )
 

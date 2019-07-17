@@ -22,7 +22,7 @@ import (
 	"github.com/xi2/xz"
 
 	"github.com/geek1011/kobopatch/patchfile"
-	"github.com/geek1011/kobopatch/patchfile/kobopatchv2"
+	"github.com/geek1011/kobopatch/patchfile/kobopatch"
 	_ "github.com/geek1011/kobopatch/patchfile/patch32lsb"
 
 	"github.com/spf13/pflag"
@@ -651,7 +651,7 @@ func (k *KoboPatch) RunPatchTests() (map[string]map[string]error, error) {
 
 			res[pfn] = map[string]error{}
 
-			sortedNames := reflect.ValueOf(ps).Interface().(*kobopatchv2.PatchSet).SortedNames()
+			sortedNames := reflect.ValueOf(ps).Interface().(*kobopatch.PatchSet).SortedNames()
 
 			errs := map[string]error{}
 			for _, name := range sortedNames {

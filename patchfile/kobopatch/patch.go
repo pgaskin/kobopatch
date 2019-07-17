@@ -1,4 +1,4 @@
-package kobopatchv2
+package kobopatch
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package kobopatchv2
+package kobopatch
 
 import (
 	"bytes"
@@ -41,5 +41,5 @@ func TestInstructionNodeToInstruction(t *testing.T) {
 	tc("ValueNotEqual", `BaseAddress: 0`, &Instruction{}, false, nil)
 	tc("StructEqual", `FindReplaceString: {Find: "test", Replace: "test"}`, &Instruction{FindReplaceString: &FindReplaceString{Find: "test", Replace: "test"}}, true, nil)
 	tc("StructNotEqual", `FindReplaceString: {Find: "test", Replace: "test"}`, &Instruction{FindReplaceString: &FindReplaceString{Find: "test", Replace: ""}}, false, nil)
-	tc("StructExtra", `FindReplaceString: {Find: "test", Replace: "test", Extra: "asd"}`, &Instruction{FindReplaceString: &FindReplaceString{Find: "test", Replace: "text"}}, false, errors.New("line 1: error decoding instruction: yaml: unmarshal errors:\n  line 1: field Extra not found in type kobopatchv2.FindReplaceString"))
+	tc("StructExtra", `FindReplaceString: {Find: "test", Replace: "test", Extra: "asd"}`, &Instruction{FindReplaceString: &FindReplaceString{Find: "test", Replace: "text"}}, false, errors.New("line 1: error decoding instruction: yaml: unmarshal errors:\n  line 1: field Extra not found in type kobopatch.FindReplaceString"))
 }

@@ -1,9 +1,10 @@
 language: go
 go: 
- - "1.10"
+ - "1.12"
 sudo: true
 
 script:
+ - export GO111MODULE=on
  - make clean
  - make build-deps
  - make deps

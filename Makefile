@@ -8,12 +8,11 @@ clean:
 
 .PHONY: build-deps
 build-deps:
-	go get -v "github.com/kardianos/govendor"
 	go get -v "github.com/aktau/github-release"
 
 .PHONY: deps
 deps:
-	govendor sync
+	go mod download
 
 .PHONY: generate
 generate:

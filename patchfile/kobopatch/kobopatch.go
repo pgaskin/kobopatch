@@ -197,17 +197,17 @@ func (ps *PatchSet) Validate() error {
 			case ReplaceString:
 				if inst.Instruction.(ReplaceString).MustMatchLength {
 					if d := len(inst.Instruction.(ReplaceString).Replace) - len(inst.Instruction.(ReplaceString).Find); d < 0 {
-						return errors.Errorf("%s: ReplaceString: replacement string %d too short", pfx, d)
+						return errors.Errorf("%s: ReplaceString: replacement string %d chars too short", pfx, -d)
 					} else if d > 0 {
-						return errors.Errorf("%s: ReplaceString: replacement string %d too long", pfx, -d)
+						return errors.Errorf("%s: ReplaceString: replacement string %d chars too long", pfx, d)
 					}
 				}
 			case FindReplaceString:
 				if inst.Instruction.(FindReplaceString).MustMatchLength {
 					if d := len(inst.Instruction.(FindReplaceString).Replace) - len(inst.Instruction.(FindReplaceString).Find); d < 0 {
-						return errors.Errorf("%s: ReplaceString: replacement string %d too short", pfx, d)
+						return errors.Errorf("%s: FindReplaceString: replacement string %d chars too short", pfx, -d)
 					} else if d > 0 {
-						return errors.Errorf("%s: ReplaceString: replacement string %d too long", pfx, -d)
+						return errors.Errorf("%s: FindReplaceString: replacement string %d chars too long", pfx, d)
 					}
 				}
 			case FindZlibHash:

@@ -65,18 +65,18 @@ func (p *Patcher) FindBaseAddress(find []byte) error {
 
 // FindBaseAddressString moves cur to the offset of a string.
 func (p *Patcher) FindBaseAddressString(find string) error {
-	return p.FindBaseAddress([]byte(find))
+	return errors.Wrap(p.FindBaseAddress([]byte(find)), "FindBaseAddressString")
 }
 
 // FindBaseAddressSymbol moves cur to the offset of a symbol by it's demangled c++ name.
 func (p *Patcher) FindBaseAddressSymbol(find string) error {
 	e, err := elf.NewFile(bytes.NewReader(p.buf))
 	if err != nil {
-		return wrapErrIfNotNil("FindBaseAddressSymbol: could not open file as elf binary", err)
+		return errors.Wrap(err, "FindBaseAddressSymbol: could not open file as elf binary")
 	}
 	syms, err := e.DynamicSymbols()
 	if err != nil {
-		return wrapErrIfNotNil("FindBaseAddressSymbol: could not read dynsyms", err)
+		return errors.Wrap(err, "FindBaseAddressSymbol: could not read dynsyms")
 	}
 	for _, sym := range syms {
 		name, err := demangle.ToString(sym.Name)
@@ -93,7 +93,7 @@ func (p *Patcher) FindBaseAddressSymbol(find string) error {
 
 // ReplaceBytes replaces the first occurrence of a sequence of bytes with another of the same length.
 func (p *Patcher) ReplaceBytes(offset int32, find, replace []byte) error {
-	return wrapErrIfNotNil("ReplaceBytes", p.replaceValue(offset, find, replace, true))
+	return errors.Wrap(p.replaceValue(offset, find, replace, true), "ReplaceBytes")
 }
 
 // ReplaceString replaces the first occurrence of a string with another of the same length.
@@ -103,17 +103,17 @@ func (p *Patcher) ReplaceString(offset int32, find, replace string) error {
 		replace += "\x00"
 		replace = replace + find[len(replace):]
 	}
-	return wrapErrIfNotNil("ReplaceString", p.replaceValue(offset, find, replace, false))
+	return errors.Wrap(p.replaceValue(offset, find, replace, false), "ReplaceString")
 }
 
 // ReplaceInt replaces the first occurrence of an integer between 0 and 255 inclusively.
 func (p *Patcher) ReplaceInt(offset int32, find, replace uint8) error {
-	return wrapErrIfNotNil("ReplaceInt", p.replaceValue(offset, find, replace, true))
+	return errors.Wrap(p.replaceValue(offset, find, replace, true), "ReplaceInt")
 }
 
 // ReplaceFloat replaces the first occurrence of a float.
 func (p *Patcher) ReplaceFloat(offset int32, find, replace float64) error {
-	return wrapErrIfNotNil("ReplaceFloat", p.replaceValue(offset, find, replace, true))
+	return errors.Wrap(p.replaceValue(offset, find, replace, true), "ReplaceFloat")
 }
 
 // FindZlib finds the base address of a zlib css stream based on a substring (not sensitive to whitespace).
@@ -182,11 +182,11 @@ func (p *Patcher) FindZlib(find string) error {
 // FindZlibHash finds the base address of a zlib css stream based on it's SHA1 hash (can be found using the cssextract tool).
 func (p *Patcher) FindZlibHash(hash string) error {
 	if len(hash) != 40 {
-		return errors.New("FindZlib: invalid hash")
+		return errors.New("FindZlibHash: invalid hash")
 	}
 	z, err := p.ExtractZlib()
 	if err != nil {
-		return errors.Wrap(err, "FindZlib: could not extract zlib streams")
+		return errors.Wrap(err, "FindZlibHash: could not extract zlib streams")
 	}
 	f := false
 	for _, zi := range z {
@@ -197,7 +197,7 @@ func (p *Patcher) FindZlibHash(hash string) error {
 		}
 	}
 	if !f {
-		return errors.New("FindZlib: could not find hash")
+		return errors.New("FindZlibHash: could not find hash")
 	}
 	return nil
 }
@@ -333,15 +333,15 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 // ReplaceBLX replaces a BLX instruction at PC (offset). Find and Replace are the target offsets.
 func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
 	if int32(len(p.buf)) < p.cur+offset {
-		return errors.New("offset past end of buf")
+		return errors.New("ReplaceBLX: offset past end of buf")
 	}
 	fi, ri := BLX(uint32(p.cur+offset), find), BLX(uint32(p.cur+offset), replace)
 	f, r := mustBytes(toBEBin(fi)), mustBytes(toBEBin(ri))
 	if len(f) != len(r) {
-		return errors.New("internal error: wrong blx length")
+		return errors.New("ReplaceBLX: internal error: wrong blx length")
 	}
 	if !bytes.HasPrefix(p.buf[p.cur+offset:], f) {
-		return errors.New("could not find bytes")
+		return errors.New("ReplaceBLX: could not find bytes")
 	}
 	copy(p.buf[p.cur+offset:], r)
 	return nil
@@ -350,17 +350,17 @@ func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
 // ReplaceBytesNOP replaces an instruction with 0046 (MOV r0, r0) as many times as needed.
 func (p *Patcher) ReplaceBytesNOP(offset int32, find []byte) error {
 	if int32(len(p.buf)) < offset {
-		return errors.New("offset past end of buf")
+		return errors.New("ReplaceBytesNOP: offset past end of buf")
 	}
 	if len(find)%2 != 0 {
-		return errors.New("find not a multiple of 2")
+		return errors.New("ReplaceBytesNOP: find not a multiple of 2")
 	}
 	r := make([]byte, len(find))
 	for i := 0; i < len(r); i += 2 {
 		r[i], r[i+1] = 0x00, 0x46
 	}
 	if !bytes.HasPrefix(p.buf[offset:], find) {
-		return errors.New("could not find bytes")
+		return errors.New("ReplaceBytesNOP: could not find bytes")
 	}
 	copy(p.buf[offset:], r)
 	return nil
@@ -437,13 +437,6 @@ func mustBytes(b []byte, err error) []byte {
 		panic(err)
 	}
 	return b
-}
-
-func wrapErrIfNotNil(txt string, err error) error {
-	if err != nil {
-		return fmt.Errorf("%s: %v", txt, err)
-	}
-	return nil
 }
 
 func isCSS(str string) bool {

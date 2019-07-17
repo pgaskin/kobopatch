@@ -36,7 +36,7 @@ func TestInstructionNodeToInstruction(t *testing.T) {
 	tc("None", ``, nil, true, errors.New("expected instruction, got nothing"))
 	tc("Unknown", `Unknown: true`, nil, true, errors.New("line 1: unknown instruction type \"Unknown\""))
 	a := BaseAddress(1)
-	tc("TooMany", `BaseAddress: 1`+"\n"+`FindBaseAddressString: "test"`, &Instruction{BaseAddress: &a}, false, errors.New("line 2: multiple types found in instruction, maybe you forgot a '-'"))
+	tc("TooMany", `{BaseAddress: 1, FindBaseAddressString: "test"}`, &Instruction{BaseAddress: &a}, false, errors.New("line 1: multiple types found in instruction, maybe you forgot a '-'"))
 	tc("ValueEqual", `BaseAddress: 1`, &Instruction{BaseAddress: &a}, true, nil)
 	tc("ValueNotEqual", `BaseAddress: 0`, &Instruction{}, false, nil)
 	tc("StructEqual", `FindReplaceString: {Find: "test", Replace: "test"}`, &Instruction{FindReplaceString: &FindReplaceString{Find: "test", Replace: "test"}}, true, nil)

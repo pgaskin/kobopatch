@@ -1,10 +1,6 @@
 kind: pipeline
 name: kobopatch
 
-platform:
-  os: linux
-  arch: amd64
-
 steps:
 - name: deps
   image: golang:1.12.7-stretch
@@ -16,6 +12,42 @@ steps:
   - apt update
   - apt install -y zlib1g-dev
   - go test -v ./...
+
+---
+
+kind: pipeline
+name: test-patches
+
+steps:
+- name: build
+  image: golang:1.12.7-stretch
+  commands:
+  - apt update
+  - apt install -y zlib1g-dev
+  - mkdir build
+  - CGO_ENABLED=1 go build -o build/kobopatch ./kobopatch
+- name: get-patches
+  image: golang:1.12.7-stretch
+  commands:
+  - git clone https://github.com/geek1011/kobopatch-patches
+  - cd kobopatch-patches
+  - git checkout "$(git describe --tags --abbrev=0 HEAD)"
+- name: test
+  image: golang:1.12.7-stretch
+  commands:
+  - cd kobopatch-patches
+  - "PATH=\"$${PWD}/../build:$${PATH}\" ./scripts/test.sh | tr \"\\r\" \"\\n\""
+
+---
+
+kind: pipeline
+name: release
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
 - name: cross
   image: dockercore/golang-cross:1.12.7
   commands:
@@ -40,10 +72,7 @@ steps:
 - name: notes
   image: golang:1.12.7-stretch
   commands:
-  - git log "$(git describe --tags --abbrev=0 HEAD^)..HEAD" --oneline --format='%h %s' | tee -a notes.md
-  when:
-    ref:
-    - refs/tags/*
+  - git log "$(git describe --tags --abbrev=0 HEAD~1)..HEAD" --oneline --format='%h %s' | tee -a notes.md
 - name: release
   image: plugins/github-release
   settings:
@@ -52,6 +81,11 @@ steps:
     note: notes.md
     files: build/*
     draft: true
-  when:
-    ref:
-    - refs/tags/*
+
+trigger:
+  ref:
+  - refs/tags/*
+
+depends_on:
+- kobopatch
+- test-patches

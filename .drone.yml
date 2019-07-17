@@ -23,7 +23,7 @@ steps:
   - apt update
   - apt install -y libz-mingw-w64-dev zlib1g-dev:i386 zlib1g-dev libc6-dev-armhf-cross libc6-dev-i386 gcc-multilib
   - mkdir build
-  - GOLDFLAGS="-linkmode external -extldflags -static -X main.version=$(git describe --tags --always)"
+  - GOLDFLAGS="-s -w -linkmode external -X main.version=$(git describe --tags --always)"
   - GOOS=linux    GOARCH=amd64                           CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/koboptch-darwin-64bit"        ./kobopatch
   - GOOS=linux    GOARCH=amd64                           CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/koboptch-apply-darwin-64bit"  ./tools/kobopatch-apply
   - GOOS=linux    GOARCH=amd64                           CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/cssextract-darwin-64bit"      ./cssextract
@@ -33,6 +33,7 @@ steps:
   - GOOS=darwin   GOARCH=amd64  CC=o64-clang             CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/koboptch-darwin-64bit"        ./kobopatch
   - GOOS=darwin   GOARCH=amd64  CC=o64-clang             CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/cssextract-darwin-64bit"      ./cssextract
   - GOOS=darwin   GOARCH=amd64  CC=o64-clang             CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/koboptch-apply-darwin-64bit"  ./tools/kobopatch-apply
-  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/koboptch-windows.exe"         ./kobopatch
-  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/cssextract-windows.exe"       ./cssextract
-  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/koboptch-apply-windows.exe"   ./tools/kobopatch-apply
+  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/koboptch-windows.exe"         ./kobopatch
+  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/cssextract-windows.exe"       ./cssextract
+  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/koboptch-apply-windows.exe"   ./tools/kobopatch-apply
+  - ls -lah build

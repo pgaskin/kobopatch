@@ -1,40 +1,47 @@
 # kobopatch
-An improved patching system for Kobo eReaders. See https://www.mobileread.com/forums/showthread.php?t=297338 . Download patches for v4.9.11311+ [here](https://github.com/geek1011/kobopatch-patches/releases/latest).
+An improved patching system for Kobo eReaders. See https://www.mobileread.com/forums/showthread.php?t=297338. Download patches for v4.9.11311+ [here](https://github.com/geek1011/kobopatch-patches/releases/latest).
 
-**Progress:**
-- [X] Core patching functionality (./patchlib)
-- [X] Drop-in replacement for patch32lsb with exactly the same output and features (./patch32lsb)
-- [X] All-in-one patcher (base features) (./kobopatch)
-- [X] All-in-one patcher (./kobopatch)
-- [X] kobopatch: support new format
-- [X] kobopatch: support old format
-- [X] kobopatch: pluggable format system
-- [X] Automatic builds
-- [X] Alternative patch format (which has more reliable and has less complex parsing)
-- [X] Manually check hashes of output from both batch formats with each other and the old patcher with all patches enabled to ensure reliability
-- [X] Patch overrides to force enable/disable patches in a portable way.
-- [X] Patch consistency check
-- [X] Convert old patch zips
-- [X] Translation file support
-- [X] Zlib support
-- [X] CSS extraction tool (./cssextract)
-- [X] Support for adding additional files
-- [X] ReplaceBLX support
+## Features
+- Zlib replacement.
+- Add additional files.
+- Translation file support.
+- Simplified BLX instruction replacement.
+- Multi-version configuration file.
+- Extensible patch file.
+- Built-in generation of Kobo update files.
+- Additional instructions.
+- Single executable.
+- Automated testing of patches.
+- Comprehensive log file and error messages.
+- Modular and embeddable.
+- Structured patch file format.
+- Backwards-compatible with old patch format.
 
-**Improvements/Goals:**
-- More readable code
-- Unit tests
-- Built-in support for generating kobo update files
-- More modular
-- Embeddable into another application
-- Single file
-- Better consistency checking of config and result
-- Easier cross-platform build support without external deps
-- Optional improved patch format
-- Faster and lower memory consumption
-- No need for temp files
-- Save and restore lists of enabled patches
-- Translation file support
-- Replacement of assembly instructions
-- more
-- Zlib support
+## Usage
+```
+Usage: kobopatch [OPTIONS] [CONFIG_FILE]
+
+Options:
+  -f, --firmware string   firmware file to be used (can also use a testdata tarball from kobopatch-patches)
+  -h, --help              show this help text
+  -t, --run-tests         test all patches (instead of running kobopatch)
+
+If CONFIG_FILE is not specified, kobopatch will use ./kobopatch.yaml.
+```
+
+```
+cssextract extracts zlib-compressed from a binary file
+Usage: cssextract BINARY_FILE
+```
+
+```
+Usage: kobopatch-apply [OPTIONS]
+
+Options:
+  -h, --help                  show this help text
+  -i, --input string          the file to patch (required)
+  -o, --output string         the file to write the patched output to (will be overwritten if exists) (required)
+  -p, --patch-file string     the file containing the patches (required)
+  -f, --patch-format string   the patch format (one of: kobopatch,patch32lsb) (default "kobopatch")
+  -v, --verbose               show verbose output from patchlib
+```

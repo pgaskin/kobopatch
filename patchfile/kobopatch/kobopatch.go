@@ -1,6 +1,7 @@
 package kobopatch
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
@@ -41,6 +42,9 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 	patchfile.Log("parsing patch file: unmarshaling to map[string]yaml.Node\n")
 	var psn map[string]yaml.Node
 	if err := yaml.Unmarshal(buf, &psn); err != nil {
+		if bytes.Contains(buf, []byte{'\t'}) {
+			return nil, errors.Wrap(err, "patch file contains tabs (it should be indented with spaces, not tabs)")
+		}
 		return nil, err
 	}
 

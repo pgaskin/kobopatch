@@ -37,3 +37,18 @@ steps:
   - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/cssextract-windows.exe"       ./tools/cssextract
   - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/koboptch-apply-windows.exe"   ./tools/kobopatch-apply
   - ls -lah build
+- name: notes
+  image: golang:1.12.7-stretch
+  commands:
+  - git log "$(git describe --tags --abbrev=0 HEAD^)..HEAD" --oneline --format='%h %s' | tee -a notes.md
+  when:
+    ref:
+    - refs/tags/*
+- name: release
+  image: plugins/github-release
+  settings:
+    api_key: {from_secret: GITHUB_TOKEN}
+    title: ${DRONE_TAG}
+    note: notes.md
+    files: build/*
+    draft: true

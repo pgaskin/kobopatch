@@ -16,7 +16,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 
@@ -28,7 +27,7 @@ import (
 	_ "github.com/geek1011/kobopatch/patchfile/patch32lsb"
 
 	"github.com/spf13/pflag"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 var version = "unknown"
@@ -296,7 +295,9 @@ func (k *KoboPatch) LoadConfig(r io.Reader) error {
 	}
 
 	k.d("unmarshaling yaml")
-	err = yaml.UnmarshalStrict(buf, &k.Config)
+	dec := yaml.NewDecoder(bytes.NewReader(buf))
+	dec.KnownFields(true)
+	err = dec.Decode(&k.Config)
 	if err != nil {
 		k.d("--> %v", err)
 		return wrap(err, "error reading kobopatch.yaml")
@@ -658,26 +659,17 @@ func (k *KoboPatch) RunPatchTests() (map[string]map[string]error, error) {
 				return nil, wrap(err, "invalid patch file '%s'", pfn)
 			}
 
-			pf := reflect.ValueOf(ps).Interface().(*kobopatch.PatchSet)
 			res[pfn] = map[string]error{}
 
-			sortedNames := []string{}
-			for name := range *pf {
-				sortedNames = append(sortedNames, name)
-			}
-			sort.Strings(sortedNames)
+			sortedNames := reflect.ValueOf(ps).Interface().(*kobopatch.PatchSet).SortedNames()
 
 			errs := map[string]error{}
 			for _, name := range sortedNames {
 				fmt.Printf(" -  %s", name)
-				err := errors.New("no such patch")
-				for pname, instructions := range *pf {
-					for _, instruction := range instructions {
-						if instruction.Enabled != nil {
-							*instruction.Enabled = pname == name
-							err = nil
-							break
-						}
+				var err error
+				for _, pname := range sortedNames {
+					if err = ps.SetEnabled(pname, pname == name); err != nil {
+						break
 					}
 				}
 				if err != nil {

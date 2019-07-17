@@ -27,7 +27,6 @@ build:
 	mkdir -p build
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch" github.com/geek1011/kobopatch/kobopatch
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-apply" github.com/geek1011/kobopatch/tools/kobopatch-apply
-	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/kobopatch-mkzlib" github.com/geek1011/kobopatch/tools/kobopatch-mkzlib
 	go build -v -x -ldflags "-X main.version=$(shell git describe --tags --always)" -o "build/cssextract" github.com/geek1011/kobopatch/tools/cssextract
 
 .PHONY: cross

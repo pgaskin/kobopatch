@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,6 +60,7 @@ func main() {
 		Debugf: func(format string, a ...interface{}) {
 			fmt.Fprintf(logfile, format+"\n", a...)
 		},
+		sums: map[string]string{},
 	}
 
 	patchfile.Log = func(format string, a ...interface{}) {
@@ -194,6 +196,7 @@ type KoboPatch struct {
 	outTar             *tar.Writer
 	outGZ              *gzip.Writer
 	outTarExpectedSize int64
+	sums               map[string]string
 
 	Logf   func(format string, a ...interface{}) // displayed to user
 	Errorf func(format string, a ...interface{}) // displayed to user
@@ -272,6 +275,11 @@ func (k *KoboPatch) WriteOutput() error {
 	if sum != k.outTarExpectedSize {
 		k.d("--> size mismatch")
 		return fmt.Errorf("size mismatch: expected %d, got %d (please report this)", k.outTarExpectedSize, sum)
+	}
+
+	k.d("\nsha1 checksums:")
+	for f, s := range k.sums {
+		k.d("  %s %s", s, f)
 	}
 
 	return nil
@@ -432,6 +440,8 @@ func (k *KoboPatch) ApplyPatches() error {
 			k.d("        --> error writing new file to patched KoboRoot.tgz")
 			return errors.New("error writing new file to patched KoboRoot.tgz")
 		}
+
+		k.sums[h.Name] = fmt.Sprintf("%x", sha1.Sum(fbuf))
 	}
 
 	return nil

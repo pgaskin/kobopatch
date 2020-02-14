@@ -32,7 +32,7 @@ steps:
   - git clone https://github.com/geek1011/kobopatch-patches
   - cd kobopatch-patches
   - git checkout "$(git describe --tags --abbrev=0 HEAD)"
-  - go build -o ./scripts/testscript ./scripts/testscript
+  - go build -o ./scripts/testscript ./scripts/test
 - name: test
   image: golang:1.13-buster
   commands:

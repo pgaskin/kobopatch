@@ -9,8 +9,6 @@ steps:
 - name: test
   image: golang:1.13-buster
   commands:
-  - apt update
-  - apt install -y zlib1g-dev
   - go test -v ./...
 
 ---
@@ -22,8 +20,6 @@ steps:
 - name: build
   image: golang:1.13-buster
   commands:
-  - apt update
-  - apt install -y zlib1g-dev
   - mkdir build
   - CGO_ENABLED=1 go build -o build/kobopatch ./kobopatch
 - name: get-patches
@@ -54,7 +50,7 @@ steps:
   commands:
   - dpkg --add-architecture i386
   - apt update
-  - apt install -y libz-mingw-w64-dev zlib1g-dev:i386 zlib1g-dev libc6-dev-armhf-cross libc6-dev-i386 gcc-multilib
+  - apt install -y libc6-dev-armhf-cross libc6-dev-i386 gcc-multilib
   - mkdir build
   - GOLDFLAGS="-s -w -linkmode external -X main.version=$(git describe --tags --always)"
   - GOOS=linux    GOARCH=amd64                           CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/kobopatch-linux-64bit"         ./kobopatch

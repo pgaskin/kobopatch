@@ -3,8 +3,8 @@ module github.com/geek1011/kobopatch
 go 1.13
 
 require (
-	github.com/DataDog/czlib v0.0.0-20160811164712-4bc9a24e37f2
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/geek1011/czlib v0.0.2
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.3

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/DataDog/czlib"
+	"github.com/geek1011/czlib"
 	"github.com/ianlancetaylor/demangle"
 )
 

@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"debug/elf"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/DataDog/czlib"
 	"github.com/ianlancetaylor/demangle"
-	"github.com/pkg/errors"
 )
 
 // Patcher applies patches to a byte array. All operations are done starting from cur.
@@ -65,18 +65,21 @@ func (p *Patcher) FindBaseAddress(find []byte) error {
 
 // FindBaseAddressString moves cur to the offset of a string.
 func (p *Patcher) FindBaseAddressString(find string) error {
-	return errors.Wrap(p.FindBaseAddress([]byte(find)), "FindBaseAddressString")
+	if err := p.FindBaseAddress([]byte(find)); err != nil {
+		return fmt.Errorf("FindBaseAddressString: %w", err)
+	}
+	return nil
 }
 
 // FindBaseAddressSymbol moves cur to the offset of a symbol by it's demangled c++ name.
 func (p *Patcher) FindBaseAddressSymbol(find string) error {
 	e, err := elf.NewFile(bytes.NewReader(p.buf))
 	if err != nil {
-		return errors.Wrap(err, "FindBaseAddressSymbol: could not open file as elf binary")
+		return fmt.Errorf("FindBaseAddressSymbol: could not open file as elf binary: %w", err)
 	}
 	syms, err := e.DynamicSymbols()
 	if err != nil {
-		return errors.Wrap(err, "FindBaseAddressSymbol: could not read dynsyms")
+		return fmt.Errorf("FindBaseAddressSymbol: could not read dynsyms: %w", err)
 	}
 	for _, sym := range syms {
 		name, err := demangle.ToString(sym.Name)
@@ -93,7 +96,10 @@ func (p *Patcher) FindBaseAddressSymbol(find string) error {
 
 // ReplaceBytes replaces the first occurrence of a sequence of bytes with another of the same length.
 func (p *Patcher) ReplaceBytes(offset int32, find, replace []byte) error {
-	return errors.Wrap(p.replaceValue(offset, find, replace, true), "ReplaceBytes")
+	if err := p.replaceValue(offset, find, replace, true); err != nil {
+		return fmt.Errorf("ReplaceBytes: %w", err)
+	}
+	return nil
 }
 
 // ReplaceString replaces the first occurrence of a string with another of the same length.
@@ -103,17 +109,26 @@ func (p *Patcher) ReplaceString(offset int32, find, replace string) error {
 		replace += "\x00"
 		replace = replace + find[len(replace):]
 	}
-	return errors.Wrap(p.replaceValue(offset, find, replace, false), "ReplaceString")
+	if err := p.replaceValue(offset, find, replace, false); err != nil {
+		return fmt.Errorf("ReplaceString: %w", err)
+	}
+	return nil
 }
 
 // ReplaceInt replaces the first occurrence of an integer between 0 and 255 inclusively.
 func (p *Patcher) ReplaceInt(offset int32, find, replace uint8) error {
-	return errors.Wrap(p.replaceValue(offset, find, replace, true), "ReplaceInt")
+	if err := p.replaceValue(offset, find, replace, true); err != nil {
+		return fmt.Errorf("ReplaceInt: %w", err)
+	}
+	return nil
 }
 
 // ReplaceFloat replaces the first occurrence of a float.
 func (p *Patcher) ReplaceFloat(offset int32, find, replace float64) error {
-	return errors.Wrap(p.replaceValue(offset, find, replace, true), "ReplaceFloat")
+	if err := p.replaceValue(offset, find, replace, true); err != nil {
+		return fmt.Errorf("ReplaceFloat: %w", err)
+	}
+	return nil
 }
 
 // FindZlib finds the base address of a zlib css stream based on a substring (not sensitive to whitespace).
@@ -123,7 +138,7 @@ func (p *Patcher) FindZlib(find string) error {
 	}
 	z, err := p.ExtractZlib()
 	if err != nil {
-		return errors.Wrap(err, "FindZlib: could not extract zlib streams")
+		return fmt.Errorf("FindZlib: could not extract zlib streams: %w", err)
 	}
 	var i int32
 	for _, zi := range z {
@@ -186,7 +201,7 @@ func (p *Patcher) FindZlibHash(hash string) error {
 	}
 	z, err := p.ExtractZlib()
 	if err != nil {
-		return errors.Wrap(err, "FindZlibHash: could not extract zlib streams")
+		return fmt.Errorf("FindZlibHash: could not extract zlib streams: %w", err)
 	}
 	f := false
 	for _, zi := range z {
@@ -219,12 +234,12 @@ func (p *Patcher) ReplaceZlibGroup(offset int32, repl []Replacement) error {
 	}
 	r, err := zlib.NewReader(bytes.NewReader(p.buf[p.cur+offset:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
 	if err != nil {
-		return errors.Wrap(err, "ReplaceZlib: could not initialize zlib reader")
+		return fmt.Errorf("ReplaceZlib: could not initialize zlib reader: %w", err)
 	}
 	dbuf, err := ioutil.ReadAll(r)
 	r.Close()
 	if err != nil && !strings.Contains(err.Error(), "corrupt input") && !strings.Contains(err.Error(), "invalid checksum") {
-		return errors.Wrap(err, "ReplaceZlib: could not decompress stream")
+		return fmt.Errorf("ReplaceZlib: could not decompress stream: %w", err)
 	}
 	if len(dbuf) == 0 || !utf8.Valid(dbuf) {
 		return errors.New("ReplaceZlib: not a valid zlib stream")
@@ -247,7 +262,7 @@ func (p *Patcher) ReplaceZlibGroup(offset int32, repl []Replacement) error {
 					find = strings.ReplaceAll(find, "; ", ";")
 					find = strings.ReplaceAll(find, "{ ", "{")
 					if !bytes.Contains(dbuf, []byte(find)) {
-						return errors.Errorf("ReplaceZlib: find string not found in stream (%s)", strings.ReplaceAll(find, "\n", "\\n"))
+						return fmt.Errorf("ReplaceZlib: find string not found in stream (%s)", strings.ReplaceAll(find, "\n", "\\n"))
 					}
 				}
 			}
@@ -279,12 +294,12 @@ func (p *Patcher) ReplaceZlibGroup(offset int32, repl []Replacement) error {
 		nbuf = compress(dbuf)
 	}
 	if len(nbuf) > len(tbuf) {
-		return errors.Errorf("ReplaceZlib: new compressed data is %d bytes longer than old data (try removing whitespace or unnecessary css)", len(nbuf)-len(tbuf))
+		return fmt.Errorf("ReplaceZlib: new compressed data is %d bytes longer than old data (try removing whitespace or unnecessary css)", len(nbuf)-len(tbuf))
 	}
 	copy(p.buf[p.cur+offset:p.cur+offset+int32(len(tbuf))], nbuf)
 	r, err = zlib.NewReader(bytes.NewReader(p.buf[p.cur+offset:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
 	if err != nil {
-		return errors.Wrap(err, "ReplaceZlib: could not initialize zlib reader")
+		return fmt.Errorf("ReplaceZlib: could not initialize zlib reader: %w", err)
 	}
 	ndbuf, err := ioutil.ReadAll(r)
 	r.Close()
@@ -307,12 +322,12 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 		if bytes.HasPrefix(p.buf[i:i+2], []byte{0x78, 0x9c}) {
 			r, err := zlib.NewReader(bytes.NewReader(p.buf[i:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
 			if err != nil {
-				return zlibs, errors.Wrap(err, "could not initialize zlib reader")
+				return zlibs, fmt.Errorf("could not initialize zlib reader: %w", err)
 			}
 			dbuf, err := ioutil.ReadAll(r)
 			r.Close()
 			if err != nil && !strings.Contains(err.Error(), "corrupt input") && !strings.Contains(err.Error(), "invalid checksum") {
-				return zlibs, errors.Wrap(err, "could not decompress stream")
+				return zlibs, fmt.Errorf("could not decompress stream: %w", err)
 			}
 			if len(dbuf) == 0 || !utf8.Valid(dbuf) {
 				continue

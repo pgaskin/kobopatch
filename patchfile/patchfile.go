@@ -2,10 +2,10 @@
 package patchfile
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/geek1011/kobopatch/patchlib"
-	"github.com/pkg/errors"
 )
 
 // Log is used to log debugging messages.
@@ -50,17 +50,17 @@ func GetFormats() []string {
 func ReadFromFile(format, filename string) (PatchSet, error) {
 	f, ok := GetFormat(format)
 	if !ok {
-		return nil, errors.Errorf("no format called '%s'", format)
+		return nil, fmt.Errorf("no format called '%s'", format)
 	}
 
 	buf, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not open patch file")
+		return nil, fmt.Errorf("could not open patch file: %w", err)
 	}
 
 	ps, err := f(buf)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not parse patch file")
+		return nil, fmt.Errorf("could not parse patch file: %w", err)
 	}
 
 	return ps, nil

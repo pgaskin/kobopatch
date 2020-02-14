@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/geek1011/kobopatch/patchlib"
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -60,17 +59,17 @@ type InstructionNode map[string]yaml.Node
 
 func (i InstructionNode) ToInstruction() (*Instruction, error) {
 	if len(i) == 0 {
-		return nil, errors.Errorf("expected instruction, got nothing")
+		return nil, fmt.Errorf("expected instruction, got nothing")
 	}
 	var found bool
 	var n Instruction
 	for name, node := range i {
 		if found {
-			return nil, errors.Errorf("line %d: multiple types found in instruction, maybe you forgot a '-'", node.Line)
+			return nil, fmt.Errorf("line %d: multiple types found in instruction, maybe you forgot a '-'", node.Line)
 		} else if field := reflect.ValueOf(&n).Elem().FieldByName(name); !field.IsValid() {
-			return nil, errors.Errorf("line %d: unknown instruction type %#v", node.Line, name)
+			return nil, fmt.Errorf("line %d: unknown instruction type %#v", node.Line, name)
 		} else if err := node.DecodeStrict(field.Addr().Interface()); err != nil {
-			return nil, errors.Wrapf(err, "line %d: error decoding instruction", node.Line)
+			return nil, fmt.Errorf("line %d: error decoding instruction: %w", node.Line, err)
 		} else {
 			found = true
 		}
@@ -120,9 +119,12 @@ func (b FindBaseAddressHex) ApplyTo(pt *patchlib.Patcher, log func(string, ...in
 	var buf []byte
 	_, err := fmt.Sscanf(strings.ReplaceAll(string(b), " ", ""), "%x\n", &buf)
 	if err != nil {
-		return errors.Wrap(err, "FindBaseAddressHex: error parsing hex")
+		return fmt.Errorf("FindBaseAddressHex: error parsing hex: %w", err)
 	}
-	return errors.Wrap(pt.FindBaseAddress(buf), "FindBaseAddressHex")
+	if err := pt.FindBaseAddress(buf); err != nil {
+		return fmt.Errorf("FindBaseAddressHex: %w", err)
+	}
+	return nil
 }
 
 func (b FindBaseAddressString) ApplyTo(pt *patchlib.Patcher, log func(string, ...interface{})) error {
@@ -220,10 +222,13 @@ func (r FindReplaceString) ApplyTo(pt *patchlib.Patcher, log func(string, ...int
 	log("FindReplaceString(%#v, %#v)", r.Find, r.Replace)
 	log("  FindBaseAddressString(%#v)", r.Find)
 	if err := pt.FindBaseAddressString(r.Find); err != nil {
-		return errors.Wrap(err, "FindReplaceString")
+		return fmt.Errorf("FindReplaceString: %w", err)
 	}
 	log("  ReplaceString(0, %#v, %#v)", r.Find, r.Replace)
-	return errors.Wrap(pt.ReplaceString(0, r.Find, r.Replace), "FindReplaceString")
+	if err := pt.ReplaceString(0, r.Find, r.Replace); err != nil {
+		return fmt.Errorf("FindReplaceString: %w", err)
+	}
+	return nil
 }
 
 func (r ReplaceString) ApplyTo(pt *patchlib.Patcher, log func(string, ...interface{})) error {
@@ -279,7 +284,7 @@ func (r ReplaceBytesAtSymbol) ApplyTo(pt *patchlib.Patcher, log func(string, ...
 	log("  ReplaceBytesAtSymbol(%#v, %#v, %#v, %#v)", r.Symbol, r.Offset, r.Find, r.Replace)
 	log("    FindBaseAddressSymbol(%#v) -> ", r.Symbol)
 	if err := pt.FindBaseAddressSymbol(r.Symbol); err != nil {
-		return errors.Wrap(err, "ReplaceBytesAtSymbol")
+		return fmt.Errorf("ReplaceBytesAtSymbol: %w", err)
 	}
 	log("      0x%06x", pt.GetCur())
 	if r.FindBLX != nil {
@@ -287,7 +292,10 @@ func (r ReplaceBytesAtSymbol) ApplyTo(pt *patchlib.Patcher, log func(string, ...
 		log("    ReplaceBytesAtSymbol.FindBLX -> Set ReplaceBytesAtSymbol.Find to BLX(0x%X, 0x%X) -> %X", pt.GetCur()+r.Offset, *r.FindBLX, r.Find)
 	}
 	log("    ReplaceBytes(%#v, %#v, %#v)", r.Offset, r.Find, r.Replace)
-	return errors.Wrap(pt.ReplaceBytes(r.Offset, r.Find, r.Replace), "ReplaceBytesAtSymbol")
+	if err := pt.ReplaceBytes(r.Offset, r.Find, r.Replace); err != nil {
+		return fmt.Errorf("ReplaceBytesAtSymbol: %w", err)
+	}
+	return nil
 }
 
 func (r ReplaceBytesNOP) ApplyTo(pt *patchlib.Patcher, log func(string, ...interface{})) error {
@@ -328,6 +336,8 @@ func expandHex(in *string, out *[]byte) (bool, error) {
 	if in == nil {
 		return false, nil
 	}
-	_, err := fmt.Sscanf(strings.ReplaceAll(*in, " ", ""), "%x\n", out)
-	return true, errors.Wrapf(err, "error expanding shorthand hex `%s`", *in)
+	if _, err := fmt.Sscanf(strings.ReplaceAll(*in, " ", ""), "%x\n", out); err != nil {
+		return true, fmt.Errorf("error expanding shorthand hex `%s`: %w", *in, err)
+	}
+	return true, nil
 }

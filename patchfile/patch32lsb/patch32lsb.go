@@ -3,11 +3,10 @@ package patch32lsb
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/geek1011/kobopatch/patchfile"
 	"github.com/geek1011/kobopatch/patchlib"
@@ -71,32 +70,32 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 		case strings.HasPrefix(l, "#"), l == "":
 			c := strings.TrimLeft(l, "# ")
 			if strings.HasPrefix(c, "patch_group") {
-				return nil, errors.Errorf("line %d: patch_group should not be a comment", i+1)
+				return nil, fmt.Errorf("line %d: patch_group should not be a comment", i+1)
 			}
 			curPatch = append(curPatch, instruction{Comment: &c})
 			break
 		case strings.ToLower(l) == "<patch>":
 			if inPatch {
-				return nil, errors.Errorf("line %d: unexpected <Patch> (already in patch)", i+1)
+				return nil, fmt.Errorf("line %d: unexpected <Patch> (already in patch)", i+1)
 			}
 			curPatch = patch{}
 			inPatch = true
 			break
 		case strings.ToLower(l) == "</patch>":
 			if !inPatch {
-				return nil, errors.Errorf("line %d: unexpected </Patch> (not in patch)", i+1)
+				return nil, fmt.Errorf("line %d: unexpected </Patch> (not in patch)", i+1)
 			}
 			if patchName == "" {
-				return nil, errors.Errorf("line %d: no patch_name for patch", i+1)
+				return nil, fmt.Errorf("line %d: no patch_name for patch", i+1)
 			}
 			if _, ok := ps[patchName]; ok {
-				return nil, errors.Errorf("line %d: duplicate patch with name '%s'", i+1, patchName)
+				return nil, fmt.Errorf("line %d: duplicate patch with name '%s'", i+1, patchName)
 			}
 			ps[patchName] = curPatch[:]
 			inPatch = false
 			break
 		case !eqRegexp.MatchString(l):
-			return nil, errors.Errorf("line %d: bad instruction: no equals sign", i+1)
+			return nil, fmt.Errorf("line %d: bad instruction: no equals sign", i+1)
 		case eqRegexp.MatchString(l):
 			spl := eqRegexp.Split(l, 2)
 			switch strings.ToLower(spl[0]) {
@@ -104,17 +103,17 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				var err error
 				patchName, err = unescape(spl[1])
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: error unescaping patch_name", i+1)
+					return nil, fmt.Errorf("line %d: error unescaping patch_name: %w", i+1, err)
 				}
 			case "patch_group":
 				g, err := unescape(spl[1])
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: error unescaping patch_group", i+1)
+					return nil, fmt.Errorf("line %d: error unescaping patch_group: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{PatchGroup: &g})
 			case "patch_enable":
 				if patchName == "" {
-					return nil, errors.Errorf("line %d: patch_enable set before patch_name", i+1)
+					return nil, fmt.Errorf("line %d: patch_enable set before patch_name", i+1)
 				}
 				switch spl[1] {
 				case "`yes`":
@@ -124,7 +123,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 					e := false
 					curPatch = append(curPatch, instruction{Enabled: &e})
 				default:
-					return nil, errors.Errorf("line %d: unexpected patch_enable value '%s' (should be yes or no)", i+1, spl[1])
+					return nil, fmt.Errorf("line %d: unexpected patch_enable value '%s' (should be yes or no)", i+1, spl[1])
 				}
 			case "replace_bytes":
 				args := strings.ReplaceAll(spl[1], " ", "")
@@ -132,7 +131,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				var find, replace []byte
 				_, err := fmt.Sscanf(args, "%x,%x,%x", &offset, &find, &replace)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_bytes malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_bytes malformed: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{ReplaceBytes: &struct {
 					Offset  int32
@@ -143,7 +142,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				var addr int32
 				_, err := fmt.Sscanf(spl[1], "%x", &addr)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: base_address malformed", i+1)
+					return nil, fmt.Errorf("line %d: base_address malformed: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{BaseAddress: &addr})
 			case "replace_float":
@@ -152,7 +151,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				var find, replace float64
 				_, err := fmt.Sscanf(args, "%x,%f,%f", &offset, &find, &replace)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_float malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_float malformed: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{ReplaceFloat: &struct {
 					Offset  int32
@@ -165,7 +164,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				var find, replace uint8
 				_, err := fmt.Sscanf(args, "%x,%d,%d", &offset, &find, &replace)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_int malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_int malformed: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{ReplaceInt: &struct {
 					Offset  int32
@@ -175,13 +174,13 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 			case "find_base_address":
 				str, err := unescape(spl[1])
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: find_base_address malformed", i+1)
+					return nil, fmt.Errorf("line %d: find_base_address malformed: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{FindBaseAddress: &str})
 			case "replace_string":
 				ab := strings.SplitN(spl[1], ", ", 2)
 				if len(ab) != 2 {
-					return nil, errors.Errorf("line %d: replace_string malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_string malformed", i+1)
 				}
 				var offset int32
 				if len(ab[0]) == 8 {
@@ -190,21 +189,21 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				}
 				_, err := fmt.Sscanf(ab[0], "%x", &offset)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_string offset malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_string offset malformed: %w", i+1, err)
 				}
 				var find, replace, leftover string
 				leftover = ab[1]
 				find, leftover, err = unescapeFirst(leftover)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_string find malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_string find malformed: %w", i+1, err)
 				}
 				leftover = strings.TrimLeft(leftover, ", ")
 				replace, leftover, err = unescapeFirst(leftover)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_string replace malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_string replace malformed: %w", i+1, err)
 				}
 				if leftover != "" {
-					return nil, errors.Errorf("line %d: replace_string malformed: extraneous characters after last argument", i+1)
+					return nil, fmt.Errorf("line %d: replace_string malformed: extraneous characters after last argument", i+1)
 				}
 				curPatch = append(curPatch, instruction{ReplaceString: &struct {
 					Offset  int32
@@ -214,19 +213,19 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 			case "find_zlib":
 				str, err := unescape(spl[1])
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: find_zlib malformed", i+1)
+					return nil, fmt.Errorf("line %d: find_zlib malformed: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{FindZlib: &str})
 			case "find_zlib_hash":
 				str, err := unescape(spl[1])
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: find_zlib_hash malformed", i+1)
+					return nil, fmt.Errorf("line %d: find_zlib_hash malformed: %w", i+1, err)
 				}
 				curPatch = append(curPatch, instruction{FindZlibHash: &str})
 			case "replace_zlib":
 				ab := strings.SplitN(spl[1], ", ", 2)
 				if len(ab) != 2 {
-					return nil, errors.Errorf("line %d: replace_zlib malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_zlib malformed", i+1)
 				}
 				var offset int32
 				if len(ab[0]) == 8 {
@@ -235,21 +234,21 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				}
 				_, err := fmt.Sscanf(ab[0], "%x", &offset)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_zlib offset malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_zlib offset malformed: %w", i+1, err)
 				}
 				var find, replace, leftover string
 				leftover = ab[1]
 				find, leftover, err = unescapeFirst(leftover)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_zlib find malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_zlib find malformed: %w", i+1, err)
 				}
 				leftover = strings.TrimLeft(leftover, ", ")
 				replace, leftover, err = unescapeFirst(leftover)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: replace_zlib replace malformed", i+1)
+					return nil, fmt.Errorf("line %d: replace_zlib replace malformed: %w", i+1, err)
 				}
 				if leftover != "" {
-					return nil, errors.Errorf("line %d: replace_zlib malformed: extraneous characters after last argument", i+1)
+					return nil, fmt.Errorf("line %d: replace_zlib malformed: extraneous characters after last argument", i+1)
 				}
 				curPatch = append(curPatch, instruction{ReplaceZlib: &struct {
 					Offset  int32
@@ -261,25 +260,25 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				leftover = spl[1]
 				find, leftover, err := unescapeFirst(leftover)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: find_replace_string find malformed", i+1)
+					return nil, fmt.Errorf("line %d: find_replace_string find malformed: %w", i+1, err)
 				}
 				leftover = strings.TrimLeft(leftover, ", ")
 				replace, leftover, err = unescapeFirst(leftover)
 				if err != nil {
-					return nil, errors.Wrapf(err, "line %d: find_replace_string replace malformed", i+1)
+					return nil, fmt.Errorf("line %d: find_replace_string replace malformed: %w", i+1, err)
 				}
 				if leftover != "" {
-					return nil, errors.Errorf("line %d: find_replace_string malformed: extraneous characters after last argument", i+1)
+					return nil, fmt.Errorf("line %d: find_replace_string malformed: extraneous characters after last argument", i+1)
 				}
 				curPatch = append(curPatch, instruction{FindReplaceString: &struct {
 					Find    string
 					Replace string
 				}{Find: find, Replace: replace}})
 			default:
-				return nil, errors.Errorf("line %d: unexpected instruction: %s", i+1, spl[0])
+				return nil, fmt.Errorf("line %d: unexpected instruction: %s", i+1, spl[0])
 			}
 		default:
-			return nil, errors.Errorf("line %d: unexpected statement: %s", i+1, l)
+			return nil, fmt.Errorf("line %d: unexpected statement: %s", i+1, l)
 		}
 	}
 	return &ps, nil
@@ -333,7 +332,7 @@ func (ps *PatchSet) Validate() error {
 			if i.FindZlibHash != nil {
 				ic++
 				if len(*i.FindZlibHash) != 40 {
-					return errors.Errorf("hash must be 40 chars in FindZlibHash in `%s`", n)
+					return fmt.Errorf("hash must be 40 chars in FindZlibHash in `%s`", n)
 				}
 			}
 			if i.ReplaceZlib != nil {
@@ -343,18 +342,18 @@ func (ps *PatchSet) Validate() error {
 				ic++
 			}
 			if ic != 1 {
-				return errors.Errorf("internal error (you should report this): ic > 1, '%#v'", i)
+				return fmt.Errorf("internal error (you should report this): ic > 1, '%#v'", i)
 			}
 		}
 		if ec != 1 {
-			return errors.Errorf("you must have exactly 1 patch_enable option in each patch (%s)", n)
+			return fmt.Errorf("you must have exactly 1 patch_enable option in each patch (%s)", n)
 		}
 		if pgc > 1 {
-			return errors.Errorf("you must have at most 1 patch_group option in each patch (%s)", n)
+			return fmt.Errorf("you must have at most 1 patch_group option in each patch (%s)", n)
 		}
 		if pg != "" && e {
 			if _, ok := enabledPatchGroups[pg]; ok {
-				return errors.Errorf("more than one patch enabled in patch_group '%s'", pg)
+				return fmt.Errorf("more than one patch enabled in patch_group '%s'", pg)
 			}
 			enabledPatchGroups[pg] = true
 		}
@@ -367,7 +366,7 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 	patchfile.Log("validating patch file\n")
 	err := ps.Validate()
 	if err != nil {
-		err = errors.Wrap(err, "invalid patch file")
+		err = fmt.Errorf("invalid patch file: %w", err)
 		fmt.Printf("  Error: %v\n", err)
 		return err
 	}
@@ -443,18 +442,18 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 				patchfile.Log("    FindBaseAddressString(%#v)\n", r.Find)
 				err = pt.FindBaseAddressString(r.Find)
 				if err != nil {
-					err = errors.Wrap(err, "FindReplaceString")
+					err = fmt.Errorf("FindReplaceString: %w", err)
 					break
 				}
 				patchfile.Log("    ReplaceString(0, %#v, %#v)\n", r.Find, r.Replace)
 				err = pt.ReplaceString(0, r.Find, r.Replace)
 				if err != nil {
-					err = errors.Wrap(err, "FindReplaceString")
+					err = fmt.Errorf("FindReplaceString: %w", err)
 					break
 				}
 			default:
 				patchfile.Log("  invalid instruction: %#v\n", i)
-				err = errors.Errorf("invalid instruction: %#v", i)
+				err = fmt.Errorf("invalid instruction: %#v", i)
 			}
 
 			if err != nil {
@@ -480,10 +479,10 @@ func (ps *PatchSet) SetEnabled(patch string, enabled bool) error {
 				return nil
 			}
 		}
-		return errors.Errorf("could not set enabled state of '%s' to %t: no Enabled instruction in patch", patch, enabled)
+		return fmt.Errorf("could not set enabled state of '%s' to %t: no Enabled instruction in patch", patch, enabled)
 	}
 	if enabled {
-		return errors.Errorf("could not set enabled state of '%s' to %t: no such patch", patch, enabled)
+		return fmt.Errorf("could not set enabled state of '%s' to %t: no such patch", patch, enabled)
 	}
 	return nil
 }

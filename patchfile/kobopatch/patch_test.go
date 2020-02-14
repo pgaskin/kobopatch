@@ -3,11 +3,11 @@ package kobopatch
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 

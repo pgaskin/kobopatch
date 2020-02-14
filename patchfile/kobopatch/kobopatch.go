@@ -8,7 +8,6 @@ import (
 
 	"github.com/geek1011/kobopatch/patchfile"
 	"github.com/geek1011/kobopatch/patchlib"
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -43,7 +42,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 	var psn map[string]yaml.Node
 	if err := yaml.Unmarshal(buf, &psn); err != nil {
 		if bytes.Contains(buf, []byte{'\t'}) {
-			return nil, errors.Wrap(err, "patch file contains tabs (it should be indented with spaces, not tabs)")
+			return nil, fmt.Errorf("patch file contains tabs (it should be indented with spaces, not tabs): %w", err)
 		}
 		return nil, err
 	}
@@ -54,13 +53,13 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 		patchfile.Log("  unmarshaling patch %#v to PatchNode ([]yaml.Node)\n", name)
 		var pn PatchNode
 		if err := node.DecodeStrict(&pn); err != nil {
-			return nil, errors.Wrapf(err, "line %d: patch %#v", node.Line, name)
+			return nil, fmt.Errorf("line %d: patch %#v: %w", node.Line, name, err)
 		}
 
 		patchfile.Log("  converting to []InstructionNode (map[string]yaml.Node)\n")
 		ns, err := pn.ToInstructionNodes()
 		if err != nil {
-			return nil, errors.Wrapf(err, "line %d: patch %#v", node.Line, name)
+			return nil, fmt.Errorf("line %d: patch %#v: %w", node.Line, name, err)
 		}
 
 		patchfile.Log("  converting to *parsedPatch\n")
@@ -69,7 +68,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 			patchfile.Log("    unmarshaling instruction %d to Instruction\n", i+1)
 			inst, err := instNode.ToInstruction()
 			if err != nil {
-				return nil, errors.Wrapf(err, "line %d: patch %#v: instruction %d", node.Line, name, i+1)
+				return nil, fmt.Errorf("line %d: patch %#v: instruction %d: %w", node.Line, name, i+1, err)
 			}
 
 			patchfile.Log("      converting to SingleInstruction...")
@@ -80,7 +79,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 				ps.parsed[name].Enabled = bool(sinst.(Enabled))
 			case Description:
 				if ps.parsed[name].Description != "" {
-					return nil, errors.Errorf("patch %#v: line %d: instruction %d: duplicate Description instruction", name, instNode.Line(node.Line), i+1)
+					return nil, fmt.Errorf("patch %#v: line %d: instruction %d: duplicate Description instruction", name, instNode.Line(node.Line), i+1)
 				}
 				ps.parsed[name].Description = string(sinst.(Description))
 			case PatchGroup:
@@ -103,7 +102,7 @@ func Parse(buf []byte) (patchfile.PatchSet, error) {
 func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 	patchfile.Log("validating patch file\n")
 	if err := ps.Validate(); err != nil {
-		err = errors.Wrap(err, "invalid patch file")
+		err = fmt.Errorf("invalid patch file: %w", err)
 		fmt.Printf("  Error: %v\n", err)
 		return err
 	}
@@ -131,7 +130,7 @@ func (ps *PatchSet) ApplyTo(pt *patchlib.Patcher) error {
 			if err := inst.Instruction.ApplyTo(pt, func(format string, a ...interface{}) {
 				patchfile.Log("        %s\n", fmt.Sprintf(format, a...))
 			}); err != nil {
-				err = errors.Wrapf(err, "could not apply patch %#v: line %d: inst %d", name, inst.Line, inst.Index)
+				err = fmt.Errorf("could not apply patch %#v: line %d: inst %d: %w", name, inst.Line, inst.Index, err)
 				patchfile.Log("        %v", err)
 				fmt.Printf("    Error: %v\n", err)
 				return err
@@ -148,7 +147,7 @@ func (ps *PatchSet) SetEnabled(patch string, enabled bool) error {
 		patch.Enabled = enabled
 		return nil
 	}
-	return errors.Errorf("no such patch %#v", patch)
+	return fmt.Errorf("no such patch %#v", patch)
 }
 
 // SortedNames gets the names of patches sorted alphabetically.
@@ -172,19 +171,19 @@ func (ps *PatchSet) Validate() error {
 		seenPatchGroups := map[string]bool{}
 		for _, g := range patch.PatchGroups {
 			if seenPatchGroups[g] {
-				return errors.Errorf("patch %#v: duplicate PatchGroup instruction for PatchGroup %#v", name, g)
+				return fmt.Errorf("patch %#v: duplicate PatchGroup instruction for PatchGroup %#v", name, g)
 			}
 			seenPatchGroups[g] = true
 			if patch.Enabled {
 				if r, ok := usedPatchGroups[g]; ok {
-					return errors.Errorf("patch %#v: more than one patch enabled in PatchGroup %#v (other patch is %#v)", name, g, r)
+					return fmt.Errorf("patch %#v: more than one patch enabled in PatchGroup %#v (other patch is %#v)", name, g, r)
 				}
 				usedPatchGroups[g] = name
 			}
 		}
 
 		if len(patch.Instructions) == 0 {
-			return errors.Errorf("patch %#v: no instructions which modify anything", name)
+			return fmt.Errorf("patch %#v: no instructions which modify anything", name)
 		}
 
 		for _, inst := range patch.Instructions {
@@ -192,36 +191,36 @@ func (ps *PatchSet) Validate() error {
 			switch inst.Instruction.(type) {
 			case ReplaceBytesNOP:
 				if len(inst.Instruction.(ReplaceBytesNOP).Find)%2 != 0 {
-					return errors.Errorf("%s: ReplaceBytesNOP: find must be a multiple of 2 to be replaced with 00 46 (MOV r0, r0)", pfx)
+					return fmt.Errorf("%s: ReplaceBytesNOP: find must be a multiple of 2 to be replaced with 00 46 (MOV r0, r0)", pfx)
 				}
 			case ReplaceString:
 				if inst.Instruction.(ReplaceString).MustMatchLength {
 					if d := len(inst.Instruction.(ReplaceString).Replace) - len(inst.Instruction.(ReplaceString).Find); d < 0 {
-						return errors.Errorf("%s: ReplaceString: replacement string %d chars too short", pfx, -d)
+						return fmt.Errorf("%s: ReplaceString: replacement string %d chars too short", pfx, -d)
 					} else if d > 0 {
-						return errors.Errorf("%s: ReplaceString: replacement string %d chars too long", pfx, d)
+						return fmt.Errorf("%s: ReplaceString: replacement string %d chars too long", pfx, d)
 					}
 				}
 			case FindReplaceString:
 				if inst.Instruction.(FindReplaceString).MustMatchLength {
 					if d := len(inst.Instruction.(FindReplaceString).Replace) - len(inst.Instruction.(FindReplaceString).Find); d < 0 {
-						return errors.Errorf("%s: FindReplaceString: replacement string %d chars too short", pfx, -d)
+						return fmt.Errorf("%s: FindReplaceString: replacement string %d chars too short", pfx, -d)
 					} else if d > 0 {
-						return errors.Errorf("%s: FindReplaceString: replacement string %d chars too long", pfx, d)
+						return fmt.Errorf("%s: FindReplaceString: replacement string %d chars too long", pfx, d)
 					}
 				}
 			case FindZlibHash:
 				if len(inst.Instruction.(FindZlibHash)) != 40 {
-					return errors.Errorf("%s: FindZlibHash: hash must be 40 chars long", pfx)
+					return fmt.Errorf("%s: FindZlibHash: hash must be 40 chars long", pfx)
 				}
 			case ReplaceZlibGroup:
 				r := inst.Instruction.(ReplaceZlibGroup)
 				if len(r.Replacements) == 0 {
-					return errors.Errorf("%s: ReplaceZlibGroup: no replacements specified", pfx)
+					return fmt.Errorf("%s: ReplaceZlibGroup: no replacements specified", pfx)
 				}
 				for i, repl := range r.Replacements {
 					if repl.Find == "" || repl.Replace == "" {
-						return errors.Errorf("%s: ReplaceZlibGroup: replacement %d: Find and Replace must be set", pfx, i+1)
+						return fmt.Errorf("%s: ReplaceZlibGroup: replacement %d: Find and Replace must be set", pfx, i+1)
 					}
 				}
 			}

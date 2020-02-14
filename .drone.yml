@@ -3,11 +3,11 @@ name: kobopatch
 
 steps:
 - name: deps
-  image: golang:1.12.7-stretch
+  image: golang:1.13-buster
   commands:
   - go mod download
 - name: test
-  image: golang:1.12.7-stretch
+  image: golang:1.13-buster
   commands:
   - apt update
   - apt install -y zlib1g-dev
@@ -20,7 +20,7 @@ name: test-patches
 
 steps:
 - name: build
-  image: golang:1.12.7-stretch
+  image: golang:1.13-buster
   commands:
   - apt update
   - apt install -y zlib1g-dev

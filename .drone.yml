@@ -27,16 +27,17 @@ steps:
   - mkdir build
   - CGO_ENABLED=1 go build -o build/kobopatch ./kobopatch
 - name: get-patches
-  image: golang:1.12.7-stretch
+  image: golang:1.13-buster
   commands:
   - git clone https://github.com/geek1011/kobopatch-patches
   - cd kobopatch-patches
   - git checkout "$(git describe --tags --abbrev=0 HEAD)"
+  - go build -o ./scripts/testscript ./scripts/testscript
 - name: test
-  image: golang:1.12.7-stretch
+  image: golang:1.13-buster
   commands:
   - cd kobopatch-patches
-  - "PATH=\"$${PWD}/../build:$${PATH}\" ./scripts/test.sh | tr \"\\r\" \"\\n\""
+  - ./scripts/testscript --kpbin ../build/kobopatch
 
 ---
 

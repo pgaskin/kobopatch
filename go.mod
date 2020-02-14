@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/geek1011/czlib v0.0.2
+	github.com/geek1011/czlib v0.0.3
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0

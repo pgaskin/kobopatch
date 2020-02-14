@@ -45,31 +45,61 @@ platform:
   arch: amd64
 
 steps:
-- name: cross
-  image: dockercore/golang-cross:1.12.7
-  commands:
-  - dpkg --add-architecture i386
-  - apt update
-  - apt install -y libc6-dev-armhf-cross libc6-dev-i386 gcc-multilib
-  - mkdir build
-  - GOLDFLAGS="-s -w -linkmode external -X main.version=$(git describe --tags --always)"
-  - GOOS=linux    GOARCH=amd64                           CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/kobopatch-linux-64bit"         ./kobopatch
-  - GOOS=linux    GOARCH=amd64                           CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/kobopatch-apply-linux-64bit"   ./tools/kobopatch-apply
-  - GOOS=linux    GOARCH=amd64                           CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/cssextract-linux-64bit"        ./tools/cssextract
-  - GOOS=linux    GOARCH=386    CC="gcc -m32"            CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/kobopatch-linux-32bit"         ./kobopatch
-  - GOOS=linux    GOARCH=386    CC="gcc -m32"            CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/kobopatch-apply-linux-32bit"   ./tools/kobopatch-apply
-  - GOOS=linux    GOARCH=386    CC="gcc -m32"            CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/cssextract-linux-32bit"        ./tools/cssextract
-  - GOOS=darwin   GOARCH=amd64  CC=o64-clang             CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/kobopatch-darwin-64bit"        ./kobopatch
-  - GOOS=darwin   GOARCH=amd64  CC=o64-clang             CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/cssextract-darwin-64bit"       ./tools/cssextract
-  - GOOS=darwin   GOARCH=amd64  CC=o64-clang             CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS}" -o "build/kobopatch-apply-darwin-64bit"  ./tools/kobopatch-apply
-  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/koboptch-windows.exe"         ./kobopatch
-  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/cssextract-windows.exe"       ./tools/cssextract
-  - GOOS=windows  GOARCH=386    CC=i686-w64-mingw32-gcc  CGO_ENABLED=1  go build -ldflags "$${GOLDFLAGS} -extldflags -static" -o "build/koboptch-apply-windows.exe"   ./tools/kobopatch-apply
-  - ls -lah build
 - name: notes
-  image: golang:1.12.7-stretch
+  image: golang:1.13-buster
   commands:
   - git log "$(git describe --tags --abbrev=0 HEAD~1)..HEAD" --oneline --format='%h %s' | tee -a notes.md
+  when: {ref: {include: ["refs/tags/*"]}}
+- name: build-linux-amd64
+  image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-main
+  command: [
+    "--platforms", "linux/amd64",
+    "--build-cmd", "
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-linux-64bit ./kobopatch &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-linux-64bit ./tools/kobopatch-apply &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-64bit ./tools/cssextract",
+  ]
+- name: build-linux-386
+  image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-main
+  command: [
+    "--platforms", "linux/amd64",
+    "--build-cmd", "
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-linux-32bit ./kobopatch &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-linux-32bit ./tools/kobopatch-apply &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-32bit ./tools/cssextract",
+  ]
+- name: build-linux-arm
+  image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-arm
+  command: [
+    "--platforms", "linux/armv6",
+    "--build-cmd", "
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-linux-arm ./kobopatch &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-linux-arm ./tools/kobopatch-apply &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-arm ./tools/cssextract",
+  ]
+- name: build-windows-386
+  image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-main
+  command: [
+    "--platforms", "windows/386",
+    "--build-cmd", "
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/koboptch-windows.exe ./kobopatch &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/koboptch-apply-windows.exe ./tools/kobopatch-apply &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/cssextract-windows.exe ./tools/cssextract",
+  ]
+- name: build-darwin-amd64
+  image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-darwin
+  command: [
+    "--platforms", "darwin/amd64",
+    "--build-cmd", "
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-darwin-64bit ./kobopatch &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-darwin-64bit ./tools/kobopatch-apply &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-darwin-64bit ./tools/cssextract",
+  ]
+- name: list
+  image: golang:1.13-buster
+  commands:
+  - ls -lah
+  depends_on: [build-linux-amd64, build-linux-arm, build-linux-386, build-windows-386, build-darwin-amd64]
 - name: release
   image: plugins/github-release
   settings:
@@ -78,10 +108,8 @@ steps:
     note: notes.md
     files: build/*
     draft: true
-
-trigger:
-  ref:
-  - refs/tags/*
+  when: {ref: {include: ["refs/tags/*"]}}
+  depends_on: [notes, list]
 
 depends_on:
 - kobopatch

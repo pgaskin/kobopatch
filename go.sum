@@ -1,8 +1,6 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/geek1011/czlib v0.0.2 h1:qTlYExguv/o+ZdROqbWTxJGbFWh/o9d3/KDN1P0Jcec=
-github.com/geek1011/czlib v0.0.2/go.mod h1:iw913x/pjDqhfoak/AU3XWgycIcGL9H6kjgPP2YqzQM=
 github.com/geek1011/czlib v0.0.3 h1:Cp9hWIbzdvyj/QmpciCghWLbRpRaMpJS7wL7bTxwgUM=
 github.com/geek1011/czlib v0.0.3/go.mod h1:iw913x/pjDqhfoak/AU3XWgycIcGL9H6kjgPP2YqzQM=
 github.com/geek1011/yaml v0.0.0-20190717135119-db0123c0912e h1:pvQRziv7p7KIPtCstDzbEbP+QDqXCLejUPi3ocALKkg=

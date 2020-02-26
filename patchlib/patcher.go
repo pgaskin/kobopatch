@@ -19,13 +19,14 @@ import (
 
 // Patcher applies patches to a byte array. All operations are done starting from cur.
 type Patcher struct {
-	buf []byte
-	cur int32
+	buf  []byte
+	cur  int32
+	hook func(offset int32, find, replace []byte) error
 }
 
 // NewPatcher creates a new Patcher.
 func NewPatcher(in []byte) *Patcher {
-	return &Patcher{in, 0}
+	return &Patcher{in, 0, nil}
 }
 
 // GetBytes returns the current content of the Patcher.
@@ -36,6 +37,13 @@ func (p *Patcher) GetBytes() []byte {
 // ResetBaseAddress moves cur to 0.
 func (p *Patcher) ResetBaseAddress() {
 	p.cur = 0
+}
+
+// Hook sets a hook to be called right before every change. If it returns an
+// error, it will be passed on. If nil (the default), the hook will be removed.
+// The find and replace arguments MUST NOT be modified by the hook.
+func (p *Patcher) Hook(fn func(offset int32, find, replace []byte) error) {
+	p.hook = fn
 }
 
 // BaseAddress moves cur to an offset. The offset starts at 0.
@@ -296,6 +304,11 @@ func (p *Patcher) ReplaceZlibGroup(offset int32, repl []Replacement) error {
 	if len(nbuf) > len(tbuf) {
 		return fmt.Errorf("ReplaceZlib: new compressed data is %d bytes longer than old data (try removing whitespace or unnecessary css)", len(nbuf)-len(tbuf))
 	}
+	if p.hook != nil {
+		if err := p.hook(p.cur+offset, tbuf, nbuf); err != nil {
+			return fmt.Errorf("hook returned error: %v", err)
+		}
+	}
 	copy(p.buf[p.cur+offset:p.cur+offset+int32(len(tbuf))], nbuf)
 	r, err = zlib.NewReader(bytes.NewReader(p.buf[p.cur+offset:])) // Need to use go zlib lib because it is more lenient about corrupt data after end of zlib stream
 	if err != nil {
@@ -358,6 +371,11 @@ func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
 	if !bytes.HasPrefix(p.buf[p.cur+offset:], f) {
 		return errors.New("ReplaceBLX: could not find bytes")
 	}
+	if p.hook != nil {
+		if err := p.hook(p.cur+offset, f, r); err != nil {
+			return fmt.Errorf("hook returned error: %v", err)
+		}
+	}
 	copy(p.buf[p.cur+offset:], r)
 	return nil
 }
@@ -376,6 +394,11 @@ func (p *Patcher) ReplaceBytesNOP(offset int32, find []byte) error {
 	}
 	if !bytes.HasPrefix(p.buf[offset:], find) {
 		return errors.New("ReplaceBytesNOP: could not find bytes")
+	}
+	if p.hook != nil {
+		if err := p.hook(offset, find, r); err != nil {
+			return fmt.Errorf("hook returned error: %v", err)
+		}
 	}
 	copy(p.buf[offset:], r)
 	return nil
@@ -430,6 +453,11 @@ func (p *Patcher) replaceValue(offset int32, find, replace interface{}, strictOf
 		return errors.New("could not find specified bytes at offset")
 	}
 
+	if p.hook != nil {
+		if err := p.hook(p.cur+offset, fbuf, rbuf); err != nil {
+			return fmt.Errorf("hook returned error: %v", err)
+		}
+	}
 	copy(p.buf[p.cur+offset:], bytes.Replace(p.buf[p.cur+offset:], fbuf, rbuf, 1))
 	return nil
 }

@@ -21,3 +21,5 @@ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+rsc.io/arm v0.0.0-20150420010332-9c32f2193064 h1:bBbas3KhLwE6f59Z9lUipY23xUX9qrvyLBdQzzV2Tko=
+rsc.io/arm v0.0.0-20150420010332-9c32f2193064/go.mod h1:MVYPdlFruujBlzEY3x2Q3XBk7XLdYRNZ7zDbrzYFO7w=

@@ -35,6 +35,11 @@ Usage: cssextract BINARY_FILE
 ```
 
 ```
+symdump dumps symbol addresses from an ARMv6+ 32-bit ELF executable
+Usage: symdump BINARY_FILE
+```
+
+```
 Usage: kobopatch-apply [OPTIONS]
 
 Options:

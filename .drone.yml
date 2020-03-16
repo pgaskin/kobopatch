@@ -53,7 +53,8 @@ steps:
     "--build-cmd", "
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-linux-64bit ./kobopatch &&
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-linux-64bit ./tools/kobopatch-apply &&
-      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-64bit ./tools/cssextract",
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-64bit ./tools/cssextract &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/symdump-linux-64bit ./tools/symdump",
   ]
 - name: build-linux-386
   image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-main
@@ -62,7 +63,8 @@ steps:
     "--build-cmd", "
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-linux-32bit ./kobopatch &&
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-linux-32bit ./tools/kobopatch-apply &&
-      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-32bit ./tools/cssextract",
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-32bit ./tools/cssextract &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/symdump-linux-32bit ./tools/symdump",
   ]
 - name: build-linux-arm
   image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-arm
@@ -71,7 +73,8 @@ steps:
     "--build-cmd", "
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-linux-arm ./kobopatch &&
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-linux-arm ./tools/kobopatch-apply &&
-      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-arm ./tools/cssextract",
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-linux-arm ./tools/cssextract &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/symdump-linux-arm ./tools/symdump",
   ]
 - name: build-windows-386
   image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-main
@@ -80,7 +83,8 @@ steps:
     "--build-cmd", "
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/koboptch-windows.exe ./kobopatch &&
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/koboptch-apply-windows.exe ./tools/kobopatch-apply &&
-      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/cssextract-windows.exe ./tools/cssextract",
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/cssextract-windows.exe ./tools/cssextract &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always) -extldflags -static\" -o build/symdump-windows.exe ./tools/symdump",
   ]
 - name: build-darwin-amd64
   image: docker.elastic.co/beats-dev/golang-crossbuild:1.13.6-darwin
@@ -89,7 +93,8 @@ steps:
     "--build-cmd", "
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-darwin-64bit ./kobopatch &&
       CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/kobopatch-apply-darwin-64bit ./tools/kobopatch-apply &&
-      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-darwin-64bit ./tools/cssextract",
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/cssextract-darwin-64bit ./tools/cssextract &&
+      CGO_ENABLED=1 go build -ldflags \"-s -w -linkmode external -X main.version=$(git describe --tags --always)\" -o build/symdump-darwin-64bit ./tools/symdump",
   ]
 - name: list
   image: golang:1.13-buster

@@ -387,7 +387,7 @@ func (p *Patcher) ResolveSymPLTTail(name string) (int32, error) {
 }
 
 func (p *Patcher) getDynsym(name string, needPLTGOT bool) (*dynsym, error) {
-	ds, err := p.getDynsyms(needPLTGOT)
+	ds, err := p.ExtractDynsyms(needPLTGOT)
 	if err != nil {
 		return nil, fmt.Errorf("get dynsyms: %w", err)
 	}
@@ -404,7 +404,7 @@ func (p *Patcher) getDynsym(name string, needPLTGOT bool) (*dynsym, error) {
 	return nil, fmt.Errorf("no such symbol %#v", name)
 }
 
-func (p *Patcher) getDynsyms(needPLTGOT bool) ([]*dynsym, error) {
+func (p *Patcher) ExtractDynsyms(needPLTGOT bool) ([]*dynsym, error) {
 	if !p.dynsymsLoaded || (needPLTGOT && !p.dynsymsLoadedPLTGOT) {
 		e, err := elf.NewFile(bytes.NewReader(p.buf))
 		if err != nil {

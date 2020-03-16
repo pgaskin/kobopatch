@@ -5,7 +5,41 @@ import (
 	"testing"
 )
 
-func TestBLX(t *testing.T) {
+func TestAsmB(t *testing.T) {
+	for _, tc := range []struct{ pc, target, inst uint32 }{
+		{0x83EDE8, 0x40EF40, 0xD0F7AAB0},
+		{0x83EDE8, 0x41A4A0, 0xDBF75AB3},
+		{0x83D426, 0x40EF40, 0xD1F78CB5},
+		{0x83D426, 0x41A4A0, 0xDDF73CB0},
+	} {
+		t.Run(fmt.Sprintf("%X_%X", tc.pc, tc.target), func(t *testing.T) {
+			if inst := b(tc.pc, tc.target); inst != tc.inst {
+				t.Errorf("%X: BLX #0x%X - expected %X, got %X", tc.pc, tc.target, tc.inst, inst)
+			} else if fmt.Sprintf("%X", inst) != fmt.Sprintf("%X", AsmB(tc.pc, tc.target)) {
+				t.Errorf("mismatch between []byte and uint32 versions")
+			}
+		})
+	}
+}
+
+func TestAsmBL(t *testing.T) {
+	for _, tc := range []struct{ pc, target, inst uint32 }{
+		{0x83EDE8, 0x40EF40, 0xD0F7AAF0},
+		{0x83EDE8, 0x41A4A0, 0xDBF75AF3},
+		{0x83D426, 0x40EF40, 0xD1F78CF5},
+		{0x83D426, 0x41A4A0, 0xDDF73CF0},
+	} {
+		t.Run(fmt.Sprintf("%X_%X", tc.pc, tc.target), func(t *testing.T) {
+			if inst := bl(tc.pc, tc.target); inst != tc.inst {
+				t.Errorf("%X: BLX #0x%X - expected %X, got %X", tc.pc, tc.target, tc.inst, inst)
+			} else if fmt.Sprintf("%X", inst) != fmt.Sprintf("%X", AsmBL(tc.pc, tc.target)) {
+				t.Errorf("mismatch between []byte and uint32 versions")
+			}
+		})
+	}
+}
+
+func TestAsmBLX(t *testing.T) {
 	for _, tc := range []struct{ pc, target, inst uint32 }{
 		{0x83EDE8, 0x40EF40, 0xD0F7AAE0},
 		{0x83EDE8, 0x41A4A0, 0xDBF75AE3},
@@ -15,6 +49,8 @@ func TestBLX(t *testing.T) {
 		t.Run(fmt.Sprintf("%X_%X", tc.pc, tc.target), func(t *testing.T) {
 			if inst := blx(tc.pc, tc.target); inst != tc.inst {
 				t.Errorf("%X: BLX #0x%X - expected %X, got %X", tc.pc, tc.target, tc.inst, inst)
+			} else if fmt.Sprintf("%X", inst) != fmt.Sprintf("%X", AsmBLX(tc.pc, tc.target)) {
+				t.Errorf("mismatch between []byte and uint32 versions")
 			}
 		})
 	}

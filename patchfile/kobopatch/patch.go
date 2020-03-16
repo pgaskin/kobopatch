@@ -260,7 +260,7 @@ func (r ReplaceBytes) ApplyTo(pt *patchlib.Patcher, log func(string, ...interfac
 		log("ReplaceBytes.ReplaceH -> Expand <%s> to set ReplaceBytesNOP.Replace to <%x>", *r.ReplaceH, r.Replace)
 	}
 	if r.FindBLX != nil {
-		r.Find = patchlib.BLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
+		r.Find = patchlib.AsmBLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
 		log("ReplaceBytes.FindBLX -> Set ReplaceBytes.Find to BLX(0x%X, 0x%X) -> %X", pt.GetCur()+r.Offset, *r.FindBLX, r.Find)
 	}
 	log("ReplaceBytes(%#v, %#v, %#v)", r.Offset, r.Find, r.Replace)
@@ -288,7 +288,7 @@ func (r ReplaceBytesAtSymbol) ApplyTo(pt *patchlib.Patcher, log func(string, ...
 	}
 	log("      0x%06x", pt.GetCur())
 	if r.FindBLX != nil {
-		r.Find = patchlib.BLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
+		r.Find = patchlib.AsmBLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
 		log("    ReplaceBytesAtSymbol.FindBLX -> Set ReplaceBytesAtSymbol.Find to BLX(0x%X, 0x%X) -> %X", pt.GetCur()+r.Offset, *r.FindBLX, r.Find)
 	}
 	log("    ReplaceBytes(%#v, %#v, %#v)", r.Offset, r.Find, r.Replace)
@@ -306,7 +306,7 @@ func (r ReplaceBytesNOP) ApplyTo(pt *patchlib.Patcher, log func(string, ...inter
 		log("ReplaceBytesNOP.FindH -> Expand <%s> to set ReplaceBytesNOP.Find to <%x>", *r.FindH, r.Find)
 	}
 	if r.FindBLX != nil {
-		r.Find = patchlib.BLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
+		r.Find = patchlib.AsmBLX(uint32(pt.GetCur()+r.Offset), *r.FindBLX)
 		log("ReplaceBytesNOP.FindBLX -> Set ReplaceBytesNOP.Find to BLX(0x%X, 0x%X) -> %X", pt.GetCur()+r.Offset, *r.FindBLX, r.Find)
 	}
 	log("ReplaceBytesNOP(%#v, %#v)", r.Offset, r.Find)

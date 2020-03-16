@@ -363,7 +363,7 @@ func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
 	if int32(len(p.buf)) < p.cur+offset {
 		return errors.New("ReplaceBLX: offset past end of buf")
 	}
-	fi, ri := BLX(uint32(p.cur+offset), find), BLX(uint32(p.cur+offset), replace)
+	fi, ri := AsmBLX(uint32(p.cur+offset), find), AsmBLX(uint32(p.cur+offset), replace)
 	f, r := mustBytes(toBEBin(fi)), mustBytes(toBEBin(ri))
 	if len(f) != len(r) {
 		return errors.New("ReplaceBLX: internal error: wrong blx length")

@@ -261,6 +261,8 @@ func TestReal(t *testing.T) {
 	cs("d07f0d59517bee75043505da790adfe4875b18eea2f7d65cfd6bb7e61068ecc9")
 }
 
+// TODO: test symbol stuff?
+
 func nerr(t *testing.T, err error) {
 	if err != nil {
 		debug.PrintStack()

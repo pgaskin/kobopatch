@@ -22,11 +22,15 @@ type Patcher struct {
 	buf  []byte
 	cur  int32
 	hook func(offset int32, find, replace []byte) error
+
+	dynsymsLoaded       bool // for lazy-loading on first use
+	dynsymsLoadedPLTGOT bool // for only decoding PLT if needed (on first use)
+	dynsyms             []*dynsym
 }
 
 // NewPatcher creates a new Patcher.
 func NewPatcher(in []byte) *Patcher {
-	return &Patcher{in, 0, nil}
+	return &Patcher{in, 0, nil, false, false, nil}
 }
 
 // GetBytes returns the current content of the Patcher.
@@ -77,29 +81,6 @@ func (p *Patcher) FindBaseAddressString(find string) error {
 		return fmt.Errorf("FindBaseAddressString: %w", err)
 	}
 	return nil
-}
-
-// FindBaseAddressSymbol moves cur to the offset of a symbol by it's demangled c++ name.
-func (p *Patcher) FindBaseAddressSymbol(find string) error {
-	e, err := elf.NewFile(bytes.NewReader(p.buf))
-	if err != nil {
-		return fmt.Errorf("FindBaseAddressSymbol: could not open file as elf binary: %w", err)
-	}
-	syms, err := e.DynamicSymbols()
-	if err != nil {
-		return fmt.Errorf("FindBaseAddressSymbol: could not read dynsyms: %w", err)
-	}
-	for _, sym := range syms {
-		name, err := demangle.ToString(sym.Name)
-		if err != nil {
-			name = sym.Name
-		}
-		if find != "" && find == name {
-			p.cur = int32(sym.Value)
-			return nil
-		}
-	}
-	return errors.New("FindBaseAddressSymbol: could not find symbol")
 }
 
 // ReplaceBytes replaces the first occurrence of a sequence of bytes with another of the same length.
@@ -358,60 +339,93 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 	return zlibs, nil
 }
 
-// ReplaceBLX replaces a BLX instruction at PC (offset). Find and Replace are the target offsets.
-func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
-	if int32(len(p.buf)) < p.cur+offset {
-		return errors.New("ReplaceBLX: offset past end of buf")
-	}
-	fi, ri := AsmBLX(uint32(p.cur+offset), find), AsmBLX(uint32(p.cur+offset), replace)
-	f, r := mustBytes(toBEBin(fi)), mustBytes(toBEBin(ri))
-	if len(f) != len(r) {
-		return errors.New("ReplaceBLX: internal error: wrong blx length")
-	}
-	if !bytes.HasPrefix(p.buf[p.cur+offset:], f) {
-		return errors.New("ReplaceBLX: could not find bytes")
-	}
-	if p.hook != nil {
-		if err := p.hook(p.cur+offset, f, r); err != nil {
-			return fmt.Errorf("hook returned error: %v", err)
-		}
-	}
-	copy(p.buf[p.cur+offset:], r)
-	return nil
-}
-
-// ReplaceBytesNOP replaces an instruction with 0046 (MOV r0, r0) as many times as needed.
-func (p *Patcher) ReplaceBytesNOP(offset int32, find []byte) error {
-	if int32(len(p.buf)) < offset {
-		return errors.New("ReplaceBytesNOP: offset past end of buf")
-	}
-	if len(find)%2 != 0 {
-		return errors.New("ReplaceBytesNOP: find not a multiple of 2")
-	}
-	r := make([]byte, len(find))
-	for i := 0; i < len(r); i += 2 {
-		r[i], r[i+1] = 0x00, 0x46
-	}
-	if !bytes.HasPrefix(p.buf[offset:], find) {
-		return errors.New("ReplaceBytesNOP: could not find bytes")
-	}
-	if p.hook != nil {
-		if err := p.hook(offset, find, r); err != nil {
-			return fmt.Errorf("hook returned error: %v", err)
-		}
-	}
-	copy(p.buf[offset:], r)
-	return nil
-}
-
 // GetCur gets the current base address.
 func (p *Patcher) GetCur() int32 {
 	return p.cur
 }
 
-// replaceValue encodes find and replace as little-endian binary and replaces the first
-// occurrence starting at cur. The lengths of the encoded find and replace must be the
-// same, or an error will be returned.
+// ResolveSym resolves a mangled (fallback to unmangled) symbol name and returns
+// its base address (error if not found). The symbol table will be loaded if not
+// already done.
+func (p *Patcher) ResolveSym(name string) (int32, error) {
+	s, err := p.getDynsym(name, false)
+	if err != nil {
+		return 0, fmt.Errorf("ResolveSym(%#v): %w", name, err)
+	}
+	return int32(s.Offset), nil
+}
+
+// ResolveSymPLT resolves a mangled (fallback to unmangled) symbol name and
+// returns its PLT address (error if it doesn't have one). The symbol table will
+// be loaded if not already done.
+func (p *Patcher) ResolveSymPLT(name string) (int32, error) {
+	s, err := p.getDynsym(name, true)
+	if err != nil {
+		return 0, fmt.Errorf("ResolveSymPLT(%#v): %w", name, err)
+	}
+	if s.OffsetPLT == 0 {
+		return 0, fmt.Errorf("ResolveSymPLT(%#v) = %#v: no PLT entry found", name, s)
+	}
+	return int32(s.OffsetPLT), nil
+}
+
+// ResolveSymPLTTail resolves a mangled (fallback to unmangled) symbol name and
+// returns its PLT tail call address (error if it doesn't have one). The symbol
+// table will be loaded if not already done.
+func (p *Patcher) ResolveSymPLTTail(name string) (int32, error) {
+	s, err := p.getDynsym(name, true)
+	if err != nil {
+		return 0, fmt.Errorf("ResolveSymPLTTail(%#v): %w", name, err)
+	}
+	if s.OffsetPLT == 0 {
+		return 0, fmt.Errorf("ResolveSymPLTTail(%#v) = %#v: no PLT entry found", name, s)
+	}
+	if s.OffsetPLTTail == 0 {
+		return 0, fmt.Errorf("ResolveSymPLTTail(%#v) = %#v: no tail stub before PLT entry", name, s)
+	}
+	return int32(s.OffsetPLTTail), nil
+}
+
+func (p *Patcher) getDynsym(name string, needPLTGOT bool) (*dynsym, error) {
+	ds, err := p.getDynsyms(needPLTGOT)
+	if err != nil {
+		return nil, fmt.Errorf("get dynsyms: %w", err)
+	}
+	for _, s := range ds {
+		if s.Name == name {
+			return s, nil
+		}
+	}
+	for _, s := range ds {
+		if s.Demangled == name {
+			return s, nil
+		}
+	}
+	return nil, fmt.Errorf("no such symbol %#v", name)
+}
+
+func (p *Patcher) getDynsyms(needPLTGOT bool) ([]*dynsym, error) {
+	if !p.dynsymsLoaded || (needPLTGOT && !p.dynsymsLoadedPLTGOT) {
+		e, err := elf.NewFile(bytes.NewReader(p.buf))
+		if err != nil {
+			return nil, fmt.Errorf("load elf: %w", err)
+		}
+		defer e.Close()
+
+		ds, err := decdynsym(e, !needPLTGOT)
+		if err != nil {
+			return nil, fmt.Errorf("load syms (pltgot: %t): %w", needPLTGOT, err)
+		}
+		p.dynsyms = ds
+		p.dynsymsLoaded = true
+		p.dynsymsLoadedPLTGOT = needPLTGOT
+	}
+	return p.dynsyms, nil
+}
+
+// replaceValue encodes find and replace as little-endian binary and replaces
+// the first occurrence starting at cur. The lengths of the encoded find and
+// replace must be the same, or an error will be returned.
 func (p *Patcher) replaceValue(offset int32, find, replace interface{}, strictOffset bool) error {
 	if int32(len(p.buf)) < p.cur+offset {
 		return errors.New("offset past end of buf")
@@ -519,4 +533,80 @@ func stripWhitespace(src string) string {
 	src = strings.ReplaceAll(src, "\n", "")
 	src = strings.ReplaceAll(src, "\r", "")
 	return src
+}
+
+// FindBaseAddressSymbol moves cur to the offset of a symbol by it's demangled c++ name.
+// Warning: All symbols are off by one for historical reasons.
+//
+// Deprecated: Use ResolveSym instead.
+func (p *Patcher) FindBaseAddressSymbol(find string) error {
+	e, err := elf.NewFile(bytes.NewReader(p.buf))
+	if err != nil {
+		return fmt.Errorf("FindBaseAddressSymbol: could not open file as elf binary: %w", err)
+	}
+	syms, err := e.DynamicSymbols()
+	if err != nil {
+		return fmt.Errorf("FindBaseAddressSymbol: could not read dynsyms: %w", err)
+	}
+	for _, sym := range syms {
+		name, err := demangle.ToString(sym.Name)
+		if err != nil {
+			name = sym.Name
+		}
+		if find != "" && find == name {
+			p.cur = int32(sym.Value)
+			return nil
+		}
+	}
+	return errors.New("FindBaseAddressSymbol: could not find symbol")
+}
+
+// ReplaceBLX replaces a BLX instruction at PC (offset). Find and Replace are the target offsets.
+//
+// Deprecated: Assemble the instruction with AsmBLX and use ReplaceBytes instead.
+func (p *Patcher) ReplaceBLX(offset int32, find, replace uint32) error {
+	if int32(len(p.buf)) < p.cur+offset {
+		return errors.New("ReplaceBLX: offset past end of buf")
+	}
+	fi, ri := AsmBLX(uint32(p.cur+offset), find), AsmBLX(uint32(p.cur+offset), replace)
+	f, r := mustBytes(toBEBin(fi)), mustBytes(toBEBin(ri))
+	if len(f) != len(r) {
+		return errors.New("ReplaceBLX: internal error: wrong blx length")
+	}
+	if !bytes.HasPrefix(p.buf[p.cur+offset:], f) {
+		return errors.New("ReplaceBLX: could not find bytes")
+	}
+	if p.hook != nil {
+		if err := p.hook(p.cur+offset, f, r); err != nil {
+			return fmt.Errorf("hook returned error: %v", err)
+		}
+	}
+	copy(p.buf[p.cur+offset:], r)
+	return nil
+}
+
+// ReplaceBytesNOP replaces an instruction with 0046 (MOV r0, r0) as many times as needed.
+//
+// Deprecated: Generate the NOP externally and use ReplaceBytes instead.
+func (p *Patcher) ReplaceBytesNOP(offset int32, find []byte) error {
+	if int32(len(p.buf)) < offset {
+		return errors.New("ReplaceBytesNOP: offset past end of buf")
+	}
+	if len(find)%2 != 0 {
+		return errors.New("ReplaceBytesNOP: find not a multiple of 2")
+	}
+	r := make([]byte, len(find))
+	for i := 0; i < len(r); i += 2 {
+		r[i], r[i+1] = 0x00, 0x46
+	}
+	if !bytes.HasPrefix(p.buf[offset:], find) {
+		return errors.New("ReplaceBytesNOP: could not find bytes")
+	}
+	if p.hook != nil {
+		if err := p.hook(offset, find, r); err != nil {
+			return fmt.Errorf("hook returned error: %v", err)
+		}
+	}
+	copy(p.buf[offset:], r)
+	return nil
 }

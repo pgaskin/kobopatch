@@ -546,7 +546,7 @@ func (k *KoboPatch) ApplyFiles() error {
 		k.l("\nAdding additional files")
 		for src, dests := range k.Config.Files {
 			for _, dest := range dests {
-				k.l("  ADD  %-25s  TO  %s", src, dest)
+				k.l("  ADD  %-35s  TO  %s", src, dest)
 				k.d("    %s -> %s", src, dest)
 				if strings.HasPrefix(dest, "/") {
 					k.d("    --> destination must not start with a slash")

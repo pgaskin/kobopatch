@@ -326,7 +326,11 @@ func (p *Patcher) ExtractZlib() ([]ZlibItem, error) {
 			if len(dbuf) == 0 || !utf8.Valid(dbuf) {
 				continue
 			}
-			if !isCSS(string(dbuf)) {
+			ic, err := IsCSS(bytes.NewReader(dbuf))
+			if err != nil {
+				panic(err) // bytes.Reader should never error
+			}
+			if !ic {
 				continue
 			}
 			tbuf := compress(dbuf)
@@ -493,17 +497,6 @@ func mustBytes(b []byte, err error) []byte {
 		panic(err)
 	}
 	return b
-}
-
-func isCSS(str string) bool {
-	cob, ccb, cco := strings.Count(str, "{"), strings.Count(str, "}"), strings.Count(str, ":")
-	if cob < 1 || ccb < 1 || cco < 1 {
-		return false
-	}
-	if cob != ccb || cob > cco {
-		return false
-	}
-	return true
 }
 
 // compress compresses data in a way compatible with python's zlib.

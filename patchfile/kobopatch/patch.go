@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/geek1011/kobopatch/patchlib"
+	"github.com/pgaskin/kobopatch/patchlib"
 	"gopkg.in/yaml.v3"
 )
 

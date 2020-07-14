@@ -1,11 +1,11 @@
-module github.com/geek1011/kobopatch
+module github.com/pgaskin/kobopatch
 
 go 1.13
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/geek1011/czlib v0.0.3
 	github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6
+	github.com/pgaskin/czlib v0.0.4
 	github.com/riking/cssparse v0.0.0-20180325025645-c37ded0aac89
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
@@ -15,4 +15,4 @@ require (
 	rsc.io/arm v0.0.0-20150420010332-9c32f2193064
 )
 
-replace gopkg.in/yaml.v3 => github.com/geek1011/yaml v0.0.0-20190717135119-db0123c0912e // v3-node-decodestrict
+replace gopkg.in/yaml.v3 => github.com/pgaskin/yaml v0.0.0-20190717135119-db0123c0912e // v3-node-decodestrict

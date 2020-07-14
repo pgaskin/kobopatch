@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/geek1011/kobopatch/patchlib"
+	"github.com/pgaskin/kobopatch/patchlib"
 )
 
 // Log is used to log debugging messages.

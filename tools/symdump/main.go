@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/geek1011/kobopatch/patchlib"
+	"github.com/pgaskin/kobopatch/patchlib"
 )
 
 func main() {

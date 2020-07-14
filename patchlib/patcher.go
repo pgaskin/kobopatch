@@ -13,8 +13,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/geek1011/czlib"
 	"github.com/ianlancetaylor/demangle"
+	"github.com/pgaskin/czlib"
 )
 
 // Patcher applies patches to a byte array. All operations are done starting from cur.

@@ -1,5 +1,5 @@
 # kobopatch
-An improved patching system for Kobo eReaders. See https://www.mobileread.com/forums/showthread.php?t=297338. Download patches for v4.9.11311+ [here](https://github.com/geek1011/kobopatch-patches/releases/latest).
+An improved patching system for Kobo eReaders. See https://www.mobileread.com/forums/showthread.php?t=297338. Download patches for v4.9.11311+ [here](https://github.com/pgaskin/kobopatch-patches/releases/latest).
 
 ## Features
 - Zlib replacement.

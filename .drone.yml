@@ -21,7 +21,7 @@ steps:
 - name: get-patches
   image: golang:1.13-buster
   commands:
-  - git clone https://github.com/geek1011/kobopatch-patches
+  - git clone https://github.com/pgaskin/kobopatch-patches
   - cd kobopatch-patches
   - git checkout "$(git describe --tags --abbrev=0 HEAD)"
   - go build -o ./scripts/testscript ./scripts/test

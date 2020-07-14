@@ -7,11 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/geek1011/kobopatch/patchlib"
-
-	"github.com/geek1011/kobopatch/patchfile"
-	_ "github.com/geek1011/kobopatch/patchfile/kobopatch"
-	_ "github.com/geek1011/kobopatch/patchfile/patch32lsb"
+	"github.com/pgaskin/kobopatch/patchfile"
+	_ "github.com/pgaskin/kobopatch/patchfile/kobopatch"
+	_ "github.com/pgaskin/kobopatch/patchfile/patch32lsb"
+	"github.com/pgaskin/kobopatch/patchlib"
 	"github.com/spf13/pflag"
 )
 

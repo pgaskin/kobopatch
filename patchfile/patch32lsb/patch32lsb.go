@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/geek1011/kobopatch/patchfile"
-	"github.com/geek1011/kobopatch/patchlib"
+	"github.com/pgaskin/kobopatch/patchfile"
+	"github.com/pgaskin/kobopatch/patchlib"
 )
 
 // PatchSet represents a series of patches.

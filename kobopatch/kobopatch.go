@@ -19,14 +19,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/geek1011/kobopatch/patchlib"
-	"github.com/xi2/xz"
-
-	"github.com/geek1011/kobopatch/patchfile"
-	"github.com/geek1011/kobopatch/patchfile/kobopatch"
-	_ "github.com/geek1011/kobopatch/patchfile/patch32lsb"
+	"github.com/pgaskin/kobopatch/patchfile"
+	"github.com/pgaskin/kobopatch/patchfile/kobopatch"
+	_ "github.com/pgaskin/kobopatch/patchfile/patch32lsb"
+	"github.com/pgaskin/kobopatch/patchlib"
 
 	"github.com/spf13/pflag"
+	"github.com/xi2/xz"
 	"gopkg.in/yaml.v3"
 )
 
@@ -66,8 +65,8 @@ func main() {
 		k.Debugf("          | %s", strings.ReplaceAll(fmt.Sprintf(strings.TrimRight(format, "\n"), a...), "\n", "\n          | "))
 	}
 
-	k.Logf("kobopatch %s\nhttps://github.com/geek1011/kobopatch\n", version)
-	k.Debugf("kobopatch %s\nhttps://github.com/geek1011/kobopatch\n", version)
+	k.Logf("kobopatch %s\nhttps://github.com/pgaskin/kobopatch\n", version)
+	k.Debugf("kobopatch %s\nhttps://github.com/pgaskin/kobopatch\n", version)
 
 	conf := "kobopatch.yaml"
 	if pflag.NArg() >= 1 {

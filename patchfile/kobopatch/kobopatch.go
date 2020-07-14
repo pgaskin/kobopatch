@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/geek1011/kobopatch/patchfile"
-	"github.com/geek1011/kobopatch/patchlib"
+	"github.com/pgaskin/kobopatch/patchfile"
+	"github.com/pgaskin/kobopatch/patchlib"
 	"gopkg.in/yaml.v3"
 )
 

@@ -173,6 +173,12 @@ func main() {
 		return
 	}
 
+	if err := k.ApplySymlinks(); err != nil {
+		k.Errorf("Error: could not apply additional symlinks: %v", err)
+		os.Exit(1)
+		return
+	}
+
 	if err := k.WriteOutput(); err != nil {
 		k.Errorf("Error: could not write output: %v", err)
 		os.Exit(1)
@@ -211,6 +217,7 @@ type Config struct {
 	Overrides    map[string]map[string]bool
 	Lrelease     string
 	Translations map[string]string
+	Symlinks     map[string]string
 	Files        map[string]stringSlice
 }
 
@@ -583,6 +590,57 @@ func (k *KoboPatch) ApplyFiles() error {
 					return errors.New("error writing additional file to KoboRoot.tgz")
 				}
 				k.outTarExpectedSize += int64(len(buf))
+			}
+		}
+	}
+	return nil
+}
+
+func (k *KoboPatch) ApplySymlinks() error {
+	k.d("\n\nKoboPatch::ApplySymlinks")
+
+	if len(k.Config.Symlinks) >= 1 {
+		k.l("\nAdding additional symlinks")
+
+		for src, dest := range k.Config.Symlinks {
+			k.l("  SYMLINK  %-35s  TO  %s", src, dest)
+			k.d("    %s -> %s", src, dest)
+
+			if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") {
+				k.d("    --> source must not start with a slash/dot")
+				return errors.New("could not add symlink: source must not start with a slash/dot")
+			}
+			if strings.HasPrefix(dest, "/") {
+				k.d("    --> destination must not start with a slash")
+				return errors.New("could not add symlink: destination must not start with a slash")
+			}
+
+			targets := []string{}
+			for _, fdests := range k.Config.Files {
+				for _, fdest := range fdests {
+					if fdest == src {
+						targets = append(targets, src)
+					}
+				}
+			}
+			if len(targets) < 1 {
+				k.d("    --> target is not declared in files")
+				return errors.New("could not add symlink: target is not declared in files")
+			}
+
+			k.d("        writing header")
+			err := k.outTar.WriteHeader(&tar.Header{
+				Typeflag: tar.TypeSymlink,
+				Name:     "./" + dest,
+				Linkname: "/" + src,
+				Mode:     0777,
+				Uid:      0,
+				Gid:      0,
+				ModTime:  time.Now(),
+			})
+			if err != nil {
+				k.d("    --> %v", err)
+				return wrap(err, "could not write additional symlink to KoboRoot.tgz")
 			}
 		}
 	}

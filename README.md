@@ -4,6 +4,7 @@ An improved patching system for Kobo eReaders. See https://www.mobileread.com/fo
 ## Features
 - Zlib replacement.
 - Add additional files.
+- Add additional symlinks.
 - Translation file support.
 - Simplified BLX instruction replacement.
 - Multi-version configuration file.

@@ -222,8 +222,8 @@ func decplt(e *elf.File) ([]pltent, error) {
 			if len(pltents) == 0 {
 				// if we're more than 32 bytes (just an arbitrary number) into
 				// the plt, we have more junk than expected
-				if pc-uint32(plt.Offset) > 32 {
-					return nil, fmt.Errorf("parse .plt: at 0x%X: more than 32 bytes of junk at start of PLT, cur %+q", pc, asmbufi)
+				if pc-uint32(plt.Offset) > 128 {
+					return nil, fmt.Errorf("parse .plt: at 0x%X: more than 128 bytes of junk at start of PLT, cur %+q", pc, asmbufi)
 				}
 				// reset the buffer
 				asmbufo, asmbufi, asmbuftail = nil, nil, 0

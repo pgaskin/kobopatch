@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+#   tags:
+#     - 'v*'
+
+jobs:
+# release:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - {suffix: "linux-64bit", platform: "GOOS=linux GOARCH=amd64"}
+          - {suffix: "linux-32bit", platform: "GOOS=linux GOARCH=386"}
+          - {suffix: "linux-arm", platform: "GOOS=linux GOARCH=arm GOARM=6"}
+          - {suffix: "linux-arm64", platform: "GOOS=linux GOARCH=arm64"}
+          - {suffix: "darwin-64bit", platform: "GOOS=darwin GOARCH=amd64"}
+          - {suffix: "darwin-arm64", platform: "GOOS=darwin GOARCH=arm64"}
+          - {suffix: "windows.exe", platform: "GOOS=windows GOARCH=amd64"}
+          - {suffix: "windows-32bit.exe", platform: "GOOS=windows GOARCH=386"}
+    name: build (${{matrix.suffix}})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go mod download
+      - run: go mod verify
+      - run: mkdir build
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -o build/${{endsWith(matrix.suffix,'exe')&&'koboptch'||'kobopatch'}}-${{matrix.suffix}} ./kobopatch
+        shell: bash
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -o build/${{endsWith(matrix.suffix,'exe')&&'koboptch'||'kobopatch'}}-apply-${{matrix.suffix}} ./tools/kobopatch-apply
+        shell: bash
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -o build/kobopatch-${{matrix.suffix}} ./tools/cssextract
+        shell: bash
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -o build/symdump-${{matrix.suffix}} ./tools/symdump
+        shell: bash

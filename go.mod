@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5
-	github.com/pgaskin/go-libz v0.0.1
+	github.com/pgaskin/go-libz v0.0.2
 	github.com/riking/cssparse v0.0.0-20180325025645-c37ded0aac89
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1

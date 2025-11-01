@@ -4,6 +4,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 h1:QCtizt3
 github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5/go.mod h1:gx7rwoVhcfuVKG5uya9Hs3Sxj7EIvldVofAWIUtGouw=
 github.com/pgaskin/go-libz v0.0.1 h1:NcSZ3+/eSUrRoZEXGmCs1aLRlkWtSHOVhFbTC0wkEXk=
 github.com/pgaskin/go-libz v0.0.1/go.mod h1:zKOJy/NMDudfyiyGiA7r0jAKjEyu+/7MSBHAnarLvxY=
+github.com/pgaskin/go-libz v0.0.2 h1:uTzyOb6qXvzTdofzq9RNzhpHzHl3fT88yM6wxzjrMFY=
+github.com/pgaskin/go-libz v0.0.2/go.mod h1:zKOJy/NMDudfyiyGiA7r0jAKjEyu+/7MSBHAnarLvxY=
 github.com/pgaskin/yaml v0.0.0-20190717135119-db0123c0912e h1:jIAOCdmm9VlOD9ezgGGiJOQofvz2mnLIH1sA1wyI8D4=
 github.com/pgaskin/yaml v0.0.0-20190717135119-db0123c0912e/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

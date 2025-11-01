@@ -144,7 +144,7 @@ func (p *Patcher) FindZlib(find string) error {
 		zi.CSS = strings.ReplaceAll(zi.CSS, "\n  ", "\n")
 		zi.CSS = strings.ReplaceAll(zi.CSS, "\n ", "\n")
 		findm := strings.ReplaceAll(find, "\n  ", "\n")
-		findm = strings.ReplaceAll(find, "\n ", "\n")
+		findm = strings.ReplaceAll(findm, "\n ", "\n")
 		findm = strings.ReplaceAll(findm, "\n    ", "\n")
 		if strings.Contains(zi.CSS, findm) || strings.Contains(stripWhitespace(zi.CSS), stripWhitespace(findm)) {
 			if i != 0 {

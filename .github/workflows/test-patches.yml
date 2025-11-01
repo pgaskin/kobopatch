@@ -1,0 +1,43 @@
+name: Test patches
+
+on:
+  push:
+    tags-ignore:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-patches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        id: latest_patches
+        with:
+          result-encoding: string
+          script: |
+            const {data: {tag_name: tag}} = await octokit.rest.repos.getLatestRelease({
+              owner: "pgaskin",
+              repo: "kobopatch-patches",
+            })
+            core.setOutput('tag', tag)
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          path: patches
+          ref: ${{steps.latest_patches.outputs.tag}}
+          repository: pgaskin/kobopatch-patches
+          fetch-depth: 1
+      - uses: actions/checkout@v5
+        with:
+          path: patches/testdata
+          ref: v1
+          repository: pgaskin/kobopatch-testdata
+          fetch-depth: 1
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: mkdir -p build && go build -o ./build/kobopatch ./kobopatch
+      - run: mkdir -p build && go build -o ./build/testscript ./patches/scripts/test/test.go
+      - run: ../build/testscript --kpbin ../build/kobopatch
+        working-directory: patches

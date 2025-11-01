@@ -17,8 +17,8 @@ func TestStringSlice(t *testing.T) {
 		{`[asd, sdf]`, []string{"asd", "sdf"}},
 		{`["asd", "sdf"]`, []string{"asd", "sdf"}},
 		{`
-	- asd
-	- sdf`, []string{"asd", "sdf"}},
+    - asd
+    - sdf`, []string{"asd", "sdf"}},
 		{`
     - "asd"
     - "sdf"`, []string{"asd", "sdf"}},

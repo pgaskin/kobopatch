@@ -14,7 +14,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/ianlancetaylor/demangle"
-	"github.com/pgaskin/czlib"
+	"github.com/pgaskin/go-libz"
+	_ "github.com/pgaskin/go-libz/embed"
 )
 
 // Patcher applies patches to a byte array. All operations are done starting from cur.
@@ -502,22 +503,11 @@ func mustBytes(b []byte, err error) []byte {
 // compress compresses data in a way compatible with python's zlib.
 // This uses czlib internally, as the std zlib produces different results.
 func compress(src []byte) []byte {
-	b, err := czlib.Compress(src) // Need to use czlib to keep header correct
+	b, err := libz.Compress(nil, src, libz.Z_DEFAULT_COMPRESSION)
 	if err != nil {
 		panic(err)
-	}
-	d, err := decompress(b)
-	if err != nil {
-		panic(err)
-	}
-	if !bytes.Equal(d, src) {
-		panic("compressed and decompressed data not equal")
 	}
 	return b
-}
-
-func decompress(src []byte) ([]byte, error) {
-	return czlib.Decompress(src)
 }
 
 func stripWhitespace(src string) string {

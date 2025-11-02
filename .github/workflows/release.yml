@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'new/existing tag name'
+        required: true
+      target_commitish:
+        description: 'target if new tag'
+        default: master
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  draft_release:
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.draft_release.outputs.id }}
+    steps:
+      - uses: actions/github-script@v8
+        id: draft_release
+        with:
+          script: |
+            const {data: {id: id}} = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: context.payload.inputs.tag_name,
+              target_commitish: context.payload.inputs.target_commitish,
+              name: context.payload.inputs.tag_name,
+              draft: true,
+            })
+            core.setOutput('id', id)
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - {suffix: "linux-64bit", platform: "GOOS=linux GOARCH=amd64"}
+          - {suffix: "linux-32bit", platform: "GOOS=linux GOARCH=386"}
+          - {suffix: "linux-arm", platform: "GOOS=linux GOARCH=arm GOARM=6"}
+          - {suffix: "linux-arm64", platform: "GOOS=linux GOARCH=arm64"}
+          - {suffix: "darwin-64bit", platform: "GOOS=darwin GOARCH=amd64"}
+          - {suffix: "darwin-arm64", platform: "GOOS=darwin GOARCH=arm64"}
+          - {suffix: "windows-64bit.exe", platform: "GOOS=windows GOARCH=amd64"}
+          - {suffix: "windows-32bit.exe", platform: "GOOS=windows GOARCH=386"}
+    name: build (${{matrix.suffix}})
+    runs-on: ubuntu-latest
+    needs:
+      - draft_release
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go mod download
+      - run: go mod verify
+      - run: mkdir build
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -trimpath -ldflags "-X main.version=${{inputs.tag_name}}" -o build/${{endsWith(matrix.suffix,'exe')&&'koboptch'||'kobopatch'}}-${{matrix.suffix}} ./kobopatch
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -trimpath -ldflags "-X main.version=${{inputs.tag_name}}" -o build/${{endsWith(matrix.suffix,'exe')&&'koboptch'||'kobopatch'}}-apply-${{matrix.suffix}} ./tools/kobopatch-apply
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -trimpath -ldflags "-X main.version=${{inputs.tag_name}}" -o build/${{endsWith(matrix.suffix,'exe')&&'koboptch'||'kobopatch'}}-cssextract-${{matrix.suffix}} ./tools/cssextract
+      - run: CGO_ENABLED=0 ${{matrix.platform}} go build -trimpath -ldflags "-X main.version=${{inputs.tag_name}}" -o build/${{endsWith(matrix.suffix,'exe')&&'koboptch'||'kobopatch'}}-symdump-${{matrix.suffix}} ./tools/symdump
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: build/*
+      - uses: actions/github-script@v8
+        with:
+          retries: 3 # note: this applies to individual github.rest calls, not the entire script
+          script: |
+            const {readdir, readFile} = require('fs').promises
+            for (const file of await readdir('build')) {
+              console.log('uploading', file)
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: '${{needs.draft_release.outputs.id}}',
+                name: file,
+                data: await readFile(`build/${file}`),
+              })
+            }

@@ -15,7 +15,6 @@ import (
 
 	"github.com/ianlancetaylor/demangle"
 	"github.com/pgaskin/go-libz"
-	_ "github.com/pgaskin/go-libz/embed"
 )
 
 // Patcher applies patches to a byte array. All operations are done starting from cur.
